@@ -1,0 +1,11 @@
+Le programme utilise des ssh. Pour cela il faut generer une clef de connection.
+
+Avant de lancer le programme il faut donc effectuer une generation ET une connection sur les machines distantes
+
+cd 'rien'		#enmène a l'home directory
+cd .ssh
+ssh_keygen
+fichier de sauv : id_rsa
+mdp : 'rien'
+cp id_rsa.pub autorized_keys
+cat id_rsa.pub >> autorized_keys #rappel : les >> pour ajouter a la suite du fichier
