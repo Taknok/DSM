@@ -1,5 +1,8 @@
 #include "common_impl.h"
 
+
+// faire un init des structure pour les malloc
+
 int creer_socket(int prop, int *port_num) 
 {
    int fd = 0;

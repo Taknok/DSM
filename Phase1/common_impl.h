@@ -17,6 +17,7 @@
 struct dsm_proc_conn  {
    int rank;
    /* a completer */
+   char * name_machine;
 };
 typedef struct dsm_proc_conn dsm_proc_conn_t; 
 

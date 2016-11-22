@@ -1,6 +1,8 @@
 #include "common_impl.h"
 
 /* variables globales */
+int DSM_NODE_NUM=0;
+
 
 /* un tableau gerant les infos d'identification */
 /* des processus dsm */
@@ -39,6 +41,42 @@ int main(int argc, char *argv[])
      /* 1- on recupere le nombre de processus a lancer */
      /* 2- on recupere les noms des machines : le nom de */
      /* la machine est un des elements d'identification */
+
+     //----------------------------------------------------------------------------------------
+
+      int nb_line=0;
+      int c;
+      int i;
+      FILE *FP=NULL;
+      FILE *FP2;
+      FP = fopen("machinefile", "r");
+
+      if (!FP)
+        {
+         printf("Impossible d'ouvrir le fichier\n");
+         exit(-1);
+        }
+
+      while ((c = getc(FP)) != EOF){ //passage par tout les caractères du fichier
+            if (c == '\n'){
+                nb_line++;
+              }
+        }
+
+      DSM_NODE_NUM=nb_line;
+      fseek(FP, 0,SEEK_SET); //revenir au début du fichier
+/*
+        char **tab = malloc(nb_line * sizeof(char *));
+        for(i=0; i<nb_line; i++){
+            tab[i] = malloc(64 * sizeof(char));
+            if (fgets(tab[i],64,FP) != NULL) {
+                puts(tab[i]);
+            }
+    }
+
+    */
+        //----------------------------------------------------------------------------------------------
+
      
      /* creation de la socket d'ecoute */
      /* + ecoute effective */ 
