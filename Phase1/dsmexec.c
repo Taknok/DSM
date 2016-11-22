@@ -31,6 +31,7 @@ int main(int argc, char *argv[])
      pid_t pid;
      int num_procs = 0;
      int i;
+     //a
      
      /* Mise en place d'un traitant pour recuperer les fils zombies*/      
      /* XXX.sa_handler = sigchld_handler; */
