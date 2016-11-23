@@ -1,5 +1,8 @@
-#include "common_impl.h"
 #include <unistd.h>
+#include <signal.h>
+
+#include "common_impl.h"
+
 
 /* variables globales */
 int DSM_NODE_NUM = 0;
@@ -18,8 +21,15 @@ void usage(void) {
 }
 
 void sigchld_handler(int sig) {
-	/* on traite les fils qui se terminent */
-	/* pour eviter les zombies */
+	int pid;
+
+	if ((pid = wait(NULL)) == -1) /* suppression du fils zombi */
+	{
+		 perror("wait handler ");
+		 errno = 0;
+		 return;
+	}
+	printf("Prise en compte du fils : %d\n", pid);
 }
 
 int count_line(FILE * FP) {
@@ -43,7 +53,10 @@ int main(int argc, char *argv[]){
 		int num_procs = 0;
 
 		/* Mise en place d'un traitant pour recuperer les fils zombies*/
-		/* XXX.sa_handler = sigchld_handler; */
+		struct sigaction custom_sigchild;
+		memset(&custom_sigchild, 0, sizeof(struct sigaction));
+		custom_sigchild.sa_handler = sigchld_handler;
+		sigaction(SIGCHLD, &custom_sigchild , NULL);
 
 		/* lecture du fichier de machines */
 		/* 1- on recupere le nombre de processus a lancer */
@@ -53,6 +66,8 @@ int main(int argc, char *argv[]){
 			printf("Impossible d'ouvrir le fichier\n");
 			exit(-1);
 		}
+
+
 
 		DSM_NODE_NUM = count_line(FP);
 
@@ -68,6 +83,7 @@ int main(int argc, char *argv[]){
 				&len, FP)) != -1) {
 			if (errno != 0) {
 				perror("Erreur lors de la lecture des noms de machines");
+				errno = 0;
 			}
 			tab_dsm_proc[i].connect_info.rank = i;
 			i++;
