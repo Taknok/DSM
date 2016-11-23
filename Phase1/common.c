@@ -1,7 +1,18 @@
 #include "common_impl.h"
 
 
+
 // faire un init des structure pour les malloc
+void init_dsm_proc_conn(dsm_proc_conn_t * dsm_proc_conn){
+	dsm_proc_conn->name_machine = malloc(LENGTH_NAME_MACHINE + 1);
+}
+
+void init_tab_dsm_proc(dsm_proc_t * tab_dsm_proc, int tab_size){
+	int i = 0;
+	for(i = 0; i < tab_size; i++){
+		init_dsm_proc_conn(&tab_dsm_proc[i].connect_info);
+	}
+}
 
 int creer_socket(int prop, int *port_num) 
 {

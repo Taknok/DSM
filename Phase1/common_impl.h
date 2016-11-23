@@ -8,25 +8,32 @@
 #include <string.h>
 #include <fcntl.h>
 
+
+//variables globales partagees
+#define LENGTH_NAME_MACHINE 100
+
+
 /* autres includes (eventuellement) */
 
 #define ERROR_EXIT(str) {perror(str);exit(EXIT_FAILURE);}
 
 /* definition du type des infos */
 /* de connexion des processus dsm */
-struct dsm_proc_conn  {
+typedef struct dsm_proc_conn {
    int rank;
    /* a completer */
    char * name_machine;
-};
-typedef struct dsm_proc_conn dsm_proc_conn_t; 
+}dsm_proc_conn_t;
+
 
 /* definition du type des infos */
 /* d'identification des processus dsm */
-struct dsm_proc {   
+typedef struct dsm_proc {
   pid_t pid;
   dsm_proc_conn_t connect_info;
-};
-typedef struct dsm_proc dsm_proc_t;
+}dsm_proc_t;
+
+
+void init_tab_dsm_proc(dsm_proc_t * tab_dsm_proc, int tab_size);
 
 int creer_socket(int type, int *port_num);
