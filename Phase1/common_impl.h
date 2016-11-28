@@ -7,6 +7,8 @@
 #include <errno.h>
 #include <string.h>
 #include <fcntl.h>
+#include <poll.h>
+
 
 
 //variables globales partagees
