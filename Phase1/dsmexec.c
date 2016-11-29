@@ -1,5 +1,6 @@
 #include <unistd.h>
 #include <signal.h>
+#include <sys/wait.h>
 
 #include "common_impl.h"
 #include "basic.h"
@@ -81,8 +82,8 @@ int main(int argc, char *argv[]) {
 		int i = 0;
 		int r;
 		size_t len = 0;
-		while ((r = getline(&(tab_dsm_proc[i].connect_info.name_machine),
-				&len, FP)) != -1) {
+		while ((r = getline(&(tab_dsm_proc[i].connect_info.name_machine), &len,
+				FP)) != -1) {
 
 			if (errno != 0) {
 				perror("Erreur lors de la lecture des noms de machines");
@@ -126,13 +127,16 @@ int main(int argc, char *argv[]) {
 
 			if (pid == 0) { /* fils */
 				/* redirection stdout */
-				close(pipe_out[i][0]);
 				dup2(pipe_out[i][1], STDOUT_FILENO);
+				close(pipe_out[i][0]);
+				close(pipe_out[i][1]);
 
 				/* redirection stderr */
-				close(pipe_err[i][0]);
-				dup2(pipe_err[i][1], STDERR_FILENO);
-				//printf(">%i\n", getpid());
+//				dup2(pipe_err[i][1], STDERR_FILENO);
+//				close(pipe_err[i][0]);
+//				close(pipe_err[i][1]);
+
+
 
 				/* Creation du tableau d'arguments pour le ssh */
 				//cast du port en chaine de caractère
@@ -144,7 +148,7 @@ int main(int argc, char *argv[]) {
 				char * newargv[taille];
 				//strcpy(newargv[0], tab_dsm_proc[i].connect_info.name_machine);
 				newargv[0] = "ssh";
-				newargv[1] = "cn";
+				newargv[1] = "normande";
 				newargv[2] = "dsmwrap";
 				newargv[3] = port_str;
 				newargv[4] = hostname;
@@ -153,19 +157,40 @@ int main(int argc, char *argv[]) {
 				int j = 0;
 				for (j = 3; j <= argc; j++) { // met les arguments dans le tableau d'execution du ssh
 					//newargv = (char**)realloc(newargv, (taille+j)*sizeof(*newargv));
-					newargv[4 + j - 2] = argv[j];
+					newargv[4 + j - 1] = argv[j];
 				}
+
+				raise(SIGSTOP);
+
+				int i = 0;
+				i++;
 
 				/* jump to new prog : */
 				execvp("ssh", newargv);
 
 			} else if (pid > 0) { /* pere */
+
+				int status = 0;
+				fprintf(stdout, "ok");
+				while (waitpid(pid, &status, WUNTRACED) == 0 && !WIFSTOPPED(status)){
+					printf("ok");
+				}
+				if (!WIFSTOPPED(status)) {
+					fprintf(stderr, "error synchronizing with fork: %s\n", strerror(errno));
+					kill(pid, SIGCONT);
+					return 1;
+				}
+
 				/* fermeture des extremites des tubes non utiles */
 				close(pipe_out[i][1]);
 				close(pipe_err[i][1]);
 
+				kill(pid, SIGCONT);
+
 				char buffer[BUFFER_SIZE];
-				read(pipe_out[i][0], buffer, BUFFER_SIZE);
+				while (read(pipe_out[i][0], buffer, sizeof(buffer)) != 0) {
+
+				}
 				printf(buffer);
 				num_procs_creat++;
 			}
