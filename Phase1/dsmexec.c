@@ -9,7 +9,8 @@
 int DSM_NODE_NUM = 0;
 int ARG_MAX_SIZE = 100;
 int BUFFER_SIZE = 1024;
-char * PATH_WRAP = "~/C/DSM/Phase1/bin/dsmwrap";
+//char * PATH_WRAP = "~/C/DSM/Phase1/bin/dsmwrap";
+char * PATH_WRAP = "~/personnel/C/Semestre_7/DSM/Phase1/bin/dsmwrap";
 
 /* un tableau gerant les infos d'identification */
 /* des processus dsm */
@@ -199,9 +200,13 @@ int main(int argc, char *argv[]) {
 				close(pipe_err[i][1]);
 
 				char buffer[BUFFER_SIZE];
+				char buffer_err[BUFFER_SIZE];
 				while (read(pipe_out[i][0], buffer, sizeof(buffer)) != 0) {
 				}
+				while (read(pipe_err[i][0], buffer_err, sizeof(buffer_err)) != 0) {
+								}
 				printf(buffer);
+				printf(buffer_err);
 				num_procs_creat++;
 			}
 		}
