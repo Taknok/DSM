@@ -9,6 +9,23 @@
 #include <fcntl.h>
 #include <poll.h>
 
+#include <sys/socket.h>
+#include <netinet/in.h> //pour gerer l'ip
+
+#include <setjmp.h>
+
+#define TRY do{ jmp_buf env; if( !setjmp(env) ){
+#define CATCH } else {
+#define END_TRY } }while (0)
+#define THROW longjmp(env, 1)
+
+//un peu de booléens
+#define FALSE 0
+#define TRUE 1
+
+
+
+
 
 
 //variables globales partagees
@@ -39,3 +56,31 @@ typedef struct dsm_proc {
 void init_tab_dsm_proc(dsm_proc_t * tab_dsm_proc, int tab_size);
 
 int creer_socket(int type, int *port_num);
+
+
+
+
+
+//--------------------------------------------------------------------------------------------------------------
+//acces reseau
+
+
+
+void do_write(int sockfd, char* text);
+
+int do_socket(int domain, int type, int protocol);
+
+void init_serv_addr(int port, struct sockaddr_in * serv_addr);
+
+void do_bind(int sock, struct sockaddr_in adr);
+
+void do_listen(int sock);
+
+int do_accept(int sock, struct sockaddr_in * adr);
+
+//-------------------------------------------------------------------------------------------------
+
+
+
+
+

@@ -9,8 +9,6 @@
 #include <string.h>
 #include <errno.h>
 
-#include "config.h"
-
 #include <setjmp.h>
 
 #define TRY do{ jmp_buf env; if( !setjmp(env) ){

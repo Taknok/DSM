@@ -7,6 +7,7 @@
 /* variables globales */
 int DSM_NODE_NUM = 0;
 int ARG_MAX_SIZE = 100;
+int BUFFER_SIZE = 1024;
 
 /* un tableau gerant les infos d'identification */
 /* des processus dsm */
@@ -64,7 +65,7 @@ int main(int argc, char *argv[]) {
 		/* lecture du fichier de machines */
 		/* 1- on recupere le nombre de processus a lancer */
 
-		FILE * FP = fopen("machine_file", "r");
+		FILE * FP = fopen(argv[1], "r");
 		if (!FP) {
 			printf("Impossible d'ouvrir le fichier\n");
 			exit(-1);
@@ -78,9 +79,9 @@ int main(int argc, char *argv[]) {
 		init_tab_dsm_proc(tab_dsm_proc, DSM_NODE_NUM);
 
 		int i = 0;
-		int read;
+		int r;
 		size_t len = 0;
-		while ((read = getline(&(tab_dsm_proc[i].connect_info.name_machine),
+		while ((r = getline(&(tab_dsm_proc[i].connect_info.name_machine),
 				&len, FP)) != -1) {
 
 			if (errno != 0) {
@@ -103,7 +104,7 @@ int main(int argc, char *argv[]) {
 		init_serv_addr(0, &serv_addr);
 		do_bind(lst_sock, serv_addr);
 		do_listen(lst_sock);
-		int port=serv_addr->sin_port ;
+		int port = serv_addr.sin_port;
 
 		// récupération du nom de la machine
 		char hostname[1024];
@@ -111,52 +112,61 @@ int main(int argc, char *argv[]) {
 
 		/* creation des fils */
 		num_procs = DSM_NODE_NUM;
-		int pipe_out[num_proc][2];
-		int pipe_err[num_proc][2];
+		int pipe_out[num_procs][2];
+		int pipe_err[num_procs][2];
 		for (i = 0; i < num_procs; i++) {
 			/* creation du tube pour rediriger stdout */
 			/* creation du tube pour rediriger stderr */
 			pipe(pipe_out[i]);
 			pipe(pipe_err[i]);
 
-
 			pid = fork();
 			if (pid == -1)
 				ERROR_EXIT("fork");
 
 			if (pid == 0) { /* fils */
-
 				/* redirection stdout */
 				close(pipe_out[i][0]);
-				dup2(pipe_out[i][1],STDOUT_FILENO);
+				dup2(pipe_out[i][1], STDOUT_FILENO);
 
 				/* redirection stderr */
 				close(pipe_err[i][0]);
-				dup2(pipe_err[i][1],STDERR_FILENO);
+				dup2(pipe_err[i][1], STDERR_FILENO);
+				//printf(">%i\n", getpid());
 
 				/* Creation du tableau d'arguments pour le ssh */
 				//cast du port en chaine de caractère
 				char port_str[ARG_MAX_SIZE];
 				sprintf(port_str, "%i", port);
 
-
 				//PB POSSIBLE AVEC LE REALLOC DE POINTEUR CONSTANT
-				int taille = 4 + argc - 2;
-				char newargv[taille][ARG_MAX_SIZE] = [tab_dsm_proc[i].connect_info.name_machine, "dsmwrap", port_str, hostname, argv[2]];
-				for(j = 3; j <= argc; j++){
+				int taille = 4 + argc - 2 + 1;
+				char * newargv[taille];
+				//strcpy(newargv[0], tab_dsm_proc[i].connect_info.name_machine);
+				newargv[0] = "ssh";
+				newargv[1] = "cn";
+				newargv[2] = "dsmwrap";
+				newargv[3] = port_str;
+				newargv[4] = hostname;
+				newargv[5] = argv[2];
+
+				int j = 0;
+				for (j = 3; j <= argc; j++) { // met les arguments dans le tableau d'execution du ssh
 					//newargv = (char**)realloc(newargv, (taille+j)*sizeof(*newargv));
-					strcpy(newargv[4+j-2], argv[j]);
+					newargv[4 + j - 2] = argv[j];
 				}
 
-
 				/* jump to new prog : */
-				execvp("ssh",newargv);
+				execvp("ssh", newargv);
 
 			} else if (pid > 0) { /* pere */
 				/* fermeture des extremites des tubes non utiles */
 				close(pipe_out[i][1]);
 				close(pipe_err[i][1]);
 
+				char buffer[BUFFER_SIZE];
+				read(pipe_out[i][0], buffer, BUFFER_SIZE);
+				printf(buffer);
 				num_procs_creat++;
 			}
 		}
