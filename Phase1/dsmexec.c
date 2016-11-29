@@ -92,7 +92,8 @@ int main(int argc, char *argv[]) {
 				errno = 0;
 			}
 			// remplacement du caractère de fin de ligne par \0
-			tab_dsm_proc[i].connect_info.name_machine[strlen(tab_dsm_proc[i].connect_info.name_machine)-1] = '\0';
+			tab_dsm_proc[i].connect_info.name_machine[strlen(
+					tab_dsm_proc[i].connect_info.name_machine) - 1] = '\0';
 			tab_dsm_proc[i].connect_info.rank = i;
 			i++;
 		}
@@ -102,6 +103,7 @@ int main(int argc, char *argv[]) {
 		/* creation #include <poll.h>
 		 * de la socket d'ecoute */
 		struct sockaddr_in serv_addr;
+
 		int lst_sock = do_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		init_serv_addr(0, &serv_addr);
 		do_bind(lst_sock, serv_addr);
@@ -138,13 +140,9 @@ int main(int argc, char *argv[]) {
 				close(pipe_out[i][0]);
 				dup2(pipe_out[i][1], STDOUT_FILENO);
 
-
 				/* redirection stderr */
 				close(pipe_err[i][0]);
 				dup2(pipe_err[i][1], STDERR_FILENO);
-
-
-
 
 				/* Creation du tableau d'arguments pour le ssh */
 				//cast du port en chaine de caractère
@@ -153,7 +151,7 @@ int main(int argc, char *argv[]) {
 
 				//PB POSSIBLE AVEC LE REALLOC DE POINTEUR CONSTANT
 				int taille = 4 + argc - 2 + 1;
-				char * newargv[taille+1];
+				char * newargv[taille + 1];
 
 				newargv[0] = "ssh";
 				newargv[1] = tab_dsm_proc[i].connect_info.name_machine;
@@ -187,7 +185,6 @@ int main(int argc, char *argv[]) {
 
 			} else if (pid > 0) { /* pere */
 
-
 				printf(">>>>>>%i\n", pid);
 				fflush(stdout);
 
@@ -204,19 +201,43 @@ int main(int argc, char *argv[]) {
 				while (read(pipe_out[i][0], buffer, sizeof(buffer)) != 0) {
 				}
 				while (read(pipe_err[i][0], buffer_err, sizeof(buffer_err)) != 0) {
-								}
+				}
 				printf(buffer);
 				printf(buffer_err);
 				num_procs_creat++;
 			}
 		}
 
+		struct pollfd fds[num_procs_creat];
+		memset(fds, 0, sizeof(fds));
+		fds[0].fd = lst_sock;
+		fds[0].events = POLLIN;
+		int num_fds = 1;
+
 		for (i = 0; i < num_procs; i++) {
 
-			//a vérif
+			//initialisation de la structure pollfd
 			/* + ecoute effective */
 			//int poll(struct pollfd *fds, nfds_t nfds, int délai);
-			//struct pollfd poll_fd[DSM_NODE_NUM];
+			if (!poll(fds, num_fds, -1)) {
+				perror("  problème sur le poll() ");
+				break;
+			}
+
+			if (fds[i].fd == lst_sock) {
+				int new_sd = accept(lst_sock, NULL, NULL);
+				if (new_sd < 0) {
+					if (errno != EWOULDBLOCK) {
+						perror("  accept() failed");
+					}
+					break;
+				}
+
+				fds[num_fds].fd = new_sd;
+				fds[num_fds].events = POLLIN;
+				num_fds++;
+			}
+
 			/* on accepte les connexions des processus dsm */
 
 			/*  On recupere le nom de la machine distante */
