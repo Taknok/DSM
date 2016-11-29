@@ -9,8 +9,8 @@
 int DSM_NODE_NUM = 0;
 int ARG_MAX_SIZE = 100;
 int BUFFER_SIZE = 1024;
-//char * PATH_WRAP = "~/C/DSM/Phase1/bin/dsmwrap";
-char * PATH_WRAP = "~/personnel/C/Semestre_7/DSM/Phase1/bin/dsmwrap";
+char * PATH_WRAP = "~/C/DSM/Phase1/bin/dsmwrap";
+//char * PATH_WRAP = "~/personnel/C/Semestre_7/DSM/Phase1/bin/dsmwrap";
 
 /* un tableau gerant les infos d'identification */
 /* des processus dsm */
@@ -106,7 +106,7 @@ int main(int argc, char *argv[]) {
 		init_serv_addr(0, &serv_addr);
 		do_bind(lst_sock, serv_addr);
 		do_listen(lst_sock);
-		int port = serv_addr.sin_port;
+		int port = get_port(lst_sock);
 
 		// récupération du nom de la machine
 		char hostname[1024];

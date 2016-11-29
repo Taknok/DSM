@@ -66,7 +66,7 @@ int do_socket(int domain, int type, int protocol) {
 void init_serv_addr(int port, struct sockaddr_in * serv_addr) {
 
 	//clean the serv_add structure
-	memset(serv_addr, 0, sizeof(serv_addr));
+	memset(serv_addr, 0, sizeof(*serv_addr));
 
 	//cast the port from a string to an int
 	//portno = atoi(port); osef car on a mis dans une constante ici coté serveur
@@ -99,7 +99,7 @@ void do_listen(int sock) {
 }
 
 int do_accept(int sock, struct sockaddr_in * adr) {
-	int addrlen = sizeof(adr);
+	socklen_t addrlen = sizeof(adr);
 	int new_sock = accept(sock, (struct sockaddr *) &adr, &addrlen);
 	if (new_sock == -1)
 		printf("Desole, je ne peux pas accepter la session TCP\n");
@@ -108,6 +108,18 @@ int do_accept(int sock, struct sockaddr_in * adr) {
 	return new_sock;
 
 }
+
+int get_port(int sock) {
+	struct sockaddr_in sin;
+	socklen_t len = sizeof(sin);
+	if (getsockname(sock, (struct sockaddr *) &sin, &len) == -1) {
+		perror("getsockname");
+	} else {
+		return ntohs(sin.sin_port);
+	}
+	return 0;
+}
+
 //-----------------------------------------------------------------------------------------------------------------
 
 void sync_child(int * pipe_father, int * pipe_child) {
