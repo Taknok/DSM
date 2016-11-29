@@ -9,6 +9,7 @@
 int DSM_NODE_NUM = 0;
 int ARG_MAX_SIZE = 100;
 int BUFFER_SIZE = 1024;
+char * PATH_WRAP = "~/C/DSM/Phase1/bin/dsmwrap";
 
 /* un tableau gerant les infos d'identification */
 /* des processus dsm */
@@ -90,8 +91,7 @@ int main(int argc, char *argv[]) {
 				errno = 0;
 			}
 			// remplacement du caractère de fin de ligne par \0
-			tab_dsm_proc[i].connect_info.name_machine[strlen(
-					tab_dsm_proc[i].connect_info.name_machine)] = '\0';
+			tab_dsm_proc[i].connect_info.name_machine[strlen(tab_dsm_proc[i].connect_info.name_machine)-1] = '\0';
 			tab_dsm_proc[i].connect_info.rank = i;
 			i++;
 		}
@@ -115,11 +115,18 @@ int main(int argc, char *argv[]) {
 		num_procs = DSM_NODE_NUM;
 		int pipe_out[num_procs][2];
 		int pipe_err[num_procs][2];
+
+		int pipe_father[num_procs][2];
+		int pipe_child[num_procs][2];
+
 		for (i = 0; i < num_procs; i++) {
 			/* creation du tube pour rediriger stdout */
 			/* creation du tube pour rediriger stderr */
 			pipe(pipe_out[i]);
 			pipe(pipe_err[i]);
+
+			pipe(pipe_father[i]);
+			pipe(pipe_child[i]);
 
 			pid = fork();
 			if (pid == -1)
@@ -127,14 +134,14 @@ int main(int argc, char *argv[]) {
 
 			if (pid == 0) { /* fils */
 				/* redirection stdout */
-				dup2(pipe_out[i][1], STDOUT_FILENO);
 				close(pipe_out[i][0]);
-				close(pipe_out[i][1]);
+				dup2(pipe_out[i][1], STDOUT_FILENO);
+
 
 				/* redirection stderr */
-//				dup2(pipe_err[i][1], STDERR_FILENO);
-//				close(pipe_err[i][0]);
-//				close(pipe_err[i][1]);
+				close(pipe_err[i][0]);
+				dup2(pipe_err[i][1], STDERR_FILENO);
+
 
 
 
@@ -145,51 +152,54 @@ int main(int argc, char *argv[]) {
 
 				//PB POSSIBLE AVEC LE REALLOC DE POINTEUR CONSTANT
 				int taille = 4 + argc - 2 + 1;
-				char * newargv[taille];
-				//strcpy(newargv[0], tab_dsm_proc[i].connect_info.name_machine);
+				char * newargv[taille+1];
+
 				newargv[0] = "ssh";
-				newargv[1] = "normande";
-				newargv[2] = "dsmwrap";
+				newargv[1] = tab_dsm_proc[i].connect_info.name_machine;
+				newargv[2] = PATH_WRAP;
 				newargv[3] = port_str;
 				newargv[4] = hostname;
 				newargv[5] = argv[2];
 
 				int j = 0;
 				for (j = 3; j <= argc; j++) { // met les arguments dans le tableau d'execution du ssh
-					//newargv = (char**)realloc(newargv, (taille+j)*sizeof(*newargv));
 					newargv[4 + j - 1] = argv[j];
 				}
+				newargv[taille] = NULL;
 
-				raise(SIGSTOP);
+//				sleep(2); //petit sleep pour voir la syncro
+				printf("<<<<<%i\n", getpid());
+				fflush(stdout);
 
-				int i = 0;
-				i++;
+				sync_child(pipe_father[i], pipe_child[i]);
+
+				printf("<<<<<<<<<<<<<<<<%i\n", getpid());
+				fflush(stdout);
 
 				/* jump to new prog : */
 				execvp("ssh", newargv);
+//				execlp("ssh", "ssh", "-Y", "normande", "ls", "-a", NULL);
+//				execlp("ssh", "ssh", "montbeliarde", PATH_WRAP, "0", "normande", "ls", "-a", NULL);
+
+				printf("Une erreur dans le exec\n");
+				fflush(stdout);
 
 			} else if (pid > 0) { /* pere */
 
-				int status = 0;
-				fprintf(stdout, "ok");
-				while (waitpid(pid, &status, WUNTRACED) == 0 && !WIFSTOPPED(status)){
-					printf("ok");
-				}
-				if (!WIFSTOPPED(status)) {
-					fprintf(stderr, "error synchronizing with fork: %s\n", strerror(errno));
-					kill(pid, SIGCONT);
-					return 1;
-				}
+
+				printf(">>>>>>%i\n", pid);
+				fflush(stdout);
+
+				sync_father(pipe_father[i], pipe_child[i]);
+
+				printf(">>>>>>>>>>>>>>>>>>\n");
 
 				/* fermeture des extremites des tubes non utiles */
 				close(pipe_out[i][1]);
 				close(pipe_err[i][1]);
 
-				kill(pid, SIGCONT);
-
 				char buffer[BUFFER_SIZE];
 				while (read(pipe_out[i][0], buffer, sizeof(buffer)) != 0) {
-
 				}
 				printf(buffer);
 				num_procs_creat++;

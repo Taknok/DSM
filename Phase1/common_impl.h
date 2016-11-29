@@ -79,8 +79,8 @@ void do_listen(int sock);
 int do_accept(int sock, struct sockaddr_in * adr);
 
 //-------------------------------------------------------------------------------------------------
+void sync_child(int * pipe_father, int * pipe_child);
 
-
-
+void sync_father(int * pipe_father, int * pipe_child);
 
 
