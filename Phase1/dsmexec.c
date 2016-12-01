@@ -3,7 +3,6 @@
 #include <sys/wait.h>
 
 #include "common_impl.h"
-#include "basic.h"
 
 /* variables globales */
 int DSM_NODE_NUM = 0;
