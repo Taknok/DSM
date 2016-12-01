@@ -8,8 +8,8 @@
 int DSM_NODE_NUM = 0;
 int ARG_MAX_SIZE = 100;
 
-//char * PATH_WRAP = "~/C/DSM/Phase1/bin/dsmwrap";
-char * PATH_WRAP = "~/personnel/C/Semestre_7/DSM/Phase1/bin/dsmwrap";
+char * PATH_WRAP = "~/C/DSM/Phase1/bin/dsmwrap";
+//char * PATH_WRAP = "~/personnel/C/Semestre_7/DSM/Phase1/bin/dsmwrap";
 
 /* un tableau gerant les infos d'identification */
 /* des processus dsm */
@@ -135,6 +135,20 @@ int main(int argc, char *argv[]) {
 				ERROR_EXIT("fork");
 
 			if (pid == 0) { /* fils */
+
+				/* Fermeture des descripteurs de fichiers du pere (copié a cause du fork)*/
+				int k = 0;
+				for (k = 0; k < i; ++k) {
+					close(pipe_out[k][0]);
+					close(pipe_out[k][1]);
+					close(pipe_err[k][0]);
+					close(pipe_err[k][1]);
+					close(pipe_father[k][0]);
+					close(pipe_father[k][1]);
+					close(pipe_child[k][0]);
+					close(pipe_child[k][1]);
+				}
+
 				/* redirection stdout */
 				close(pipe_out[i][0]);
 				dup2(pipe_out[i][1], STDOUT_FILENO);
@@ -208,10 +222,8 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
-		Client  liste_client[num_procs];
+		struct client_t liste_client[num_procs];
 		for (i = 0; i < num_procs; i++) {
-
-
 
 			/* on accepte les connexions des processus dsm */
 			int new_sd = 0;
@@ -228,22 +240,11 @@ int main(int argc, char *argv[]) {
 			/* d'ecoute des processus distants */
 			char * client_port = str_extract(buffer_sock, "<port>", "</port>");
 
-			liste_client[i].name=client_name;
-			liste_client[i].port_client=client_port;
+			liste_client[i].name = client_name;
+			liste_client[i].port_client = client_port;
 
 //			printf("%s\n", liste_client[i].name);
 //			printf("%s\n", liste_client[i].port_client);
-
-
-
-
-
-
-
-
-
-
-
 
 		}
 
@@ -267,7 +268,6 @@ int main(int argc, char *argv[]) {
 		/* on attend les processus fils */
 
 		/* on ferme les descripteurs proprement */
-
 
 		/* on ferme la socket d'ecoute */
 	}

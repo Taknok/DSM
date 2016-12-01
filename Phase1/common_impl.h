@@ -47,8 +47,7 @@ typedef struct dsm_proc_conn {
    char * name_machine;
 }dsm_proc_conn_t;
 
-typedef struct
-{
+typedef struct client_t{
 	char * name;
 	int port_client;
 	int num_client;
