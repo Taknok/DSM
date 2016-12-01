@@ -98,4 +98,7 @@ void sync_child(int * pipe_father, int * pipe_child);
 
 void sync_father(int * pipe_father, int * pipe_child);
 
+//-------------------------------------------------------------------------------------------------
+char * str_extract(char * str, char * p1, char *p2);
+
 

@@ -209,7 +209,6 @@ int main(int argc, char *argv[]) {
 		}
 
 
-
 		for (i = 0; i < num_procs; i++) {
 
 
@@ -225,6 +224,10 @@ int main(int argc, char *argv[]) {
 
 			int retour_client = do_read(buffer_sock, new_sd);
 			printf("Entrée : %s\n", buffer_sock);
+
+			printf("a\n");
+			char * client_name = str_extract(buffer_sock, "<name>", "</name>");
+			printf("result : %s\n", client_name);
 
 
 			Client  liste_client[num_procs];

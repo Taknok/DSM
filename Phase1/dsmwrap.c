@@ -29,30 +29,38 @@ int main(int argc, char **argv) {
 	char* serv_ip = get_ip(argv[2]);
 	printf("###%s\n", serv_ip);
 
-
 	//get port
-	int port = atoi(argv[1]);
+	int serv_port = atoi(argv[1]);
 
 	//get the socket
 	sock = do_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
 	//connect to remote socket
-	sock_host = do_connect(sock, sock_host, serv_ip, port);
+	sock_host = do_connect(sock, sock_host, serv_ip, serv_port);
 
 	char hostname[100];
 	gethostname(hostname, 99);
 
-	/* Envoi du nom de machine au lanceur */
-	sprintf(buffer, "<name>%s</name>", hostname);
-
-	do_write(sock, buffer);
-
 	/* Creation de la socket d'ecoute pour les */
 	/* connexions avec les autres processus dsm */
+	struct sockaddr_in serv_addr;
+	int lst_sock = do_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+	init_serv_addr(0, &serv_addr);
+	do_bind(lst_sock, serv_addr);
+	do_listen(lst_sock);
+
+	int port = get_port(lst_sock);
+
+	/* Envoi du nom de machine au lanceur */
+	sprintf(buffer, "%s<name>%s</name>", buffer, hostname);
 
 	/* Envoi du numero de port au lanceur */
 	/* pour qu'il le propage à tous les autres */
 	/* processus dsm */
+	sprintf(buffer, "%s<port>%i</port>", buffer, port);
+
+	/* ENVOIE */
+	do_write(sock, buffer);
 
 	/* on execute la bonne commande */
 	execlp(argv[3], argv[4], NULL);
