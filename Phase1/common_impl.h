@@ -81,7 +81,7 @@ int do_accept(int sock, struct sockaddr_in * adr);
 
 int get_port(int sock);
 
-int do_read(buffer);
+int do_read(char * buffer, int lst_sock);
 
 //-------------------------------------------------------------------------------------------------
 void sync_child(int * pipe_father, int * pipe_child);
