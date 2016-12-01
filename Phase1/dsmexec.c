@@ -268,55 +268,8 @@ int main(int argc, char *argv[]) {
 
 		/* on ferme les descripteurs proprement */
 
-<<<<<<< HEAD
-int main(int argc, char *argv[])
-{
-  if (argc < 3){
-    usage();
-  } else {       
-     pid_t pid;
-     int num_procs = 0;
-     int i;
-     //a
-     
-     /* Mise en place d'un traitant pour recuperer les fils zombies*/      
-     /* XXX.sa_handler = sigchld_handler; */
-     
-     /* lecture du fichier de machines */
-     /* 1- on recupere le nombre de processus a lancer */
-     /* 2- on recupere les noms des machines : le nom de */
-     /* la machine est un des elements d'identification */
-     
-     /* creation de la socket d'ecoute */
-     /* + ecoute effective */ 
-     
-     /* creation des fils */
-     for(i = 0; i < num_procs ; i++) {
-	
-	/* creation du tube pour rediriger stdout */
-	
-	/* creation du tube pour rediriger stderr */
-	
-	pid = fork();
-	if(pid == -1) ERROR_EXIT("fork");
-	
-	if (pid == 0) { /* fils */	
-	   
-	   /* redirection stdout */	      
-	   
-	   /* redirection stderr */	      	      
-	   
-	   /* Creation du tableau d'arguments pour le ssh */ 
-	   
-	   /* jump to new prog : */
-	   /* execvp("ssh",newargv); */
 
-	} else  if(pid > 0) { /* pere */		      
-	   /* fermeture des extremites des tubes non utiles */
-	   num_procs_creat++;	      
-=======
 		/* on ferme la socket d'ecoute */
->>>>>>> dev
 	}
 	exit(EXIT_SUCCESS);
 }
