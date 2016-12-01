@@ -50,7 +50,8 @@ typedef struct dsm_proc_conn {
 typedef struct
 {
 	char * name;
-	int lst_sock;
+	int port_client;
+	int num_client;
 	 //pour plus tard
 }Client;
 

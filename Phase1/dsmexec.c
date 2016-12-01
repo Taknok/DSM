@@ -208,7 +208,7 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
-
+		Client  liste_client[num_procs];
 		for (i = 0; i < num_procs; i++) {
 
 
@@ -217,36 +217,34 @@ int main(int argc, char *argv[]) {
 			int new_sd = 0;
 			new_sd = accept(lst_sock, NULL, NULL);
 
-
-
+			//initialisation du buffer
 			char * buffer_sock = (char *) malloc(BUFFER_SIZE * sizeof(char));
 			fflush(stdout);
 
 			int retour_client = do_read(buffer_sock, new_sd);
-			printf("Entrée : %s\n", buffer_sock);
-
-			printf("a\n");
-			char * client_name = str_extract(buffer_sock, "<name>", "</name>");
-			printf("result : %s\n", client_name);
-
-
-			Client  liste_client[num_procs];
-			liste_client[i].name=buffer_sock;
-			printf("%s\n", liste_client[i].name);
-
-
-
-			//initialisation du buffer
-
 			/*  On recupere le nom de la machine distante */
-
-			/* 1- d'abord la taille de la chaine */
-			/* 2- puis la chaine elle-meme */
-
-			/* On recupere le pid du processus distant  */
-
+			char * client_name = str_extract(buffer_sock, "<name>", "</name>");
 			/* On recupere le numero de port de la socket */
 			/* d'ecoute des processus distants */
+			char * client_port = str_extract(buffer_sock, "<port>", "</port>");
+
+			liste_client[i].name=client_name;
+			liste_client[i].port_client=client_port;
+
+//			printf("%s\n", liste_client[i].name);
+//			printf("%s\n", liste_client[i].port_client);
+
+
+
+
+
+
+
+
+
+
+
+
 		}
 
 		/* envoi du nombre de processus aux processus dsm*/
