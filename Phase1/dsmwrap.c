@@ -19,7 +19,8 @@ int main(int argc, char **argv) {
 	memset(buffer, 0, BUFFER_SIZE);
 
 	//get address info from the server
-	char* serv_name = argv[2];
+	char* serv_ip = argv[2];
+
 	//get port
 	int port = atoi(argv[1]);
 
@@ -27,14 +28,16 @@ int main(int argc, char **argv) {
 	sock = do_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
 	//connect to remote socket
-	sock_host = do_connect(sock, sock_host, serv_name, port);
+	sock_host = do_connect(sock, sock_host, serv_ip, port);
 
 
 	char * hostname;
 	gethostname(hostname, 100);
 	/* Envoi du nom de machine au lanceur */
-	sprintf(buffer, "<name>%s</name>")
+	sprintf(buffer, "<name>%s</name>", hostname);
 	/* Envoi du pid au lanceur */
+
+	do_write(sock, buffer);
 
 	/* Creation de la socket d'ecoute pour les */
 	/* connexions avec les autres processus dsm */

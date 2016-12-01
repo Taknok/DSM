@@ -109,29 +109,51 @@ int do_accept(int sock, struct sockaddr_in * adr) {
 
 }
 
-int get_port(int sock) {
+int get_port_ip(int sock, char * ip) {
+	int port;
 	struct sockaddr_in sin;
 	socklen_t len = sizeof(sin);
 	if (getsockname(sock, (struct sockaddr *) &sin, &len) == -1) {
 		perror("getsockname");
 	} else {
-		return ntohs(sin.sin_port);
+		port =  ntohs(sin.sin_port);
 	}
-	return 0;
+
+	struct sockaddr_in* pV4Addr = (struct sockaddr_in*) &sin;
+	struct in_addr ipAddr = pV4Addr->sin_addr;
+	inet_ntop( AF_INET, &ipAddr, ip, INET_ADDRSTRLEN);
+
+	return port;
 }
 
+int do_read(char * buffer, int lst_sock) {
+	memset(&buffer, 0, BUFFER_SIZE); //on s'assure d'avoir des valeurs nulles dans le buff
+	int length_r_buff = recv(lst_sock, buffer, BUFFER_SIZE - 1, 0);
 
-int do_read(char * buffer, int lst_sock){
-    memset(&buffer, 0, BUFFER_SIZE); //on s'assure d'avoir des valeurs nulles dans le buff
-    int length_r_buff = recv(lst_sock, buffer, BUFFER_SIZE -1, 0);
+	if (length_r_buff < 0) {
+		printf("erreur rien n'a été recu\n");
+	} else {
+		buffer[length_r_buff] = '\0';
+	}
+	return length_r_buff;
+}
 
-    if (length_r_buff < 0) {
-        printf("erreur rien n'a été recu\n");
-    } else {
-        buffer[length_r_buff] = '\0';
+struct sockaddr_in do_connect(int sock, struct sockaddr_in sock_host, char* hostname, int port){
+    //reinitialise la memoire
+    memset(&sock_host, 0, sizeof(sock_host));
+
+    sock_host.sin_family = AF_INET;
+    inet_aton(hostname, &sock_host.sin_addr);
+    sock_host.sin_port = htons(port);
+
+    //check de l'erreur
+    if (connect(sock, (struct sockaddr *) &sock_host, sizeof(sock_host)) == -1) {
+        perror("erreur connect");
+        exit(-1);
     }
-    return length_r_buff;
+    return sock_host;
 }
+
 //-----------------------------------------------------------------------------------------------------------------
 
 void sync_child(int * pipe_father, int * pipe_child) {

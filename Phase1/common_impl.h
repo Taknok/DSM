@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <poll.h>
 
+#include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h> //pour gerer l'ip
 
@@ -79,9 +80,11 @@ void do_listen(int sock);
 
 int do_accept(int sock, struct sockaddr_in * adr);
 
-int get_port(int sock);
+int get_port_ip(int sock, char * ip);
 
 int do_read(char * buffer, int lst_sock);
+
+struct sockaddr_in do_connect(int sock, struct sockaddr_in sock_host, char* hostname, int port);
 
 //-------------------------------------------------------------------------------------------------
 void sync_child(int * pipe_father, int * pipe_child);

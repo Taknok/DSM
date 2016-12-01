@@ -8,8 +8,8 @@
 int DSM_NODE_NUM = 0;
 int ARG_MAX_SIZE = 100;
 
-//char * PATH_WRAP = "~/C/DSM/Phase1/bin/dsmwrap";
-char * PATH_WRAP = "~/personnel/C/Semestre_7/DSM/Phase1/bin/dsmwrap";
+char * PATH_WRAP = "~/C/DSM/Phase1/bin/dsmwrap";
+//char * PATH_WRAP = "~/personnel/C/Semestre_7/DSM/Phase1/bin/dsmwrap";
 
 /* un tableau gerant les infos d'identification */
 /* des processus dsm */
@@ -102,16 +102,17 @@ int main(int argc, char *argv[]) {
 		/* creation #include <poll.h>
 		 * de la socket d'ecoute */
 		struct sockaddr_in serv_addr;
+		char ip[ARG_MAX_SIZE];
 
 		int lst_sock = do_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		init_serv_addr(0, &serv_addr);
 		do_bind(lst_sock, serv_addr);
 		do_listen(lst_sock);
-		int port = get_port(lst_sock);
+		int port = get_port_ip(lst_sock, ip);
 
 		// récupération du nom de la machine
-		char hostname[1024];
-		gethostname(hostname, 1023);
+//		char hostname[1024];
+//		gethostname(hostname, 1023);
 
 		/* creation des fils */
 		num_procs = DSM_NODE_NUM;
@@ -144,7 +145,7 @@ int main(int argc, char *argv[]) {
 				dup2(pipe_err[i][1], STDERR_FILENO);
 
 				/* Creation du tableau d'arguments pour le ssh */
-				//cast du port en chaine de caractère
+				//cast du port et ip en chaine de caractères
 				char port_str[ARG_MAX_SIZE];
 				sprintf(port_str, "%i", port);
 
@@ -156,7 +157,7 @@ int main(int argc, char *argv[]) {
 				newargv[1] = tab_dsm_proc[i].connect_info.name_machine;
 				newargv[2] = PATH_WRAP;
 				newargv[3] = port_str;
-				newargv[4] = hostname;
+				newargv[4] = ip;
 				newargv[5] = argv[2]; //la commande
 
 				int j = 0;
