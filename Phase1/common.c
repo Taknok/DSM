@@ -37,9 +37,20 @@ void error(const char *msg) {
 }
 
 void do_write(int sockfd, char* text) {
-	while (send(sockfd, text, strlen(text), 0) == -1) {
-		perror("erreur envoie\n");
+	int offset = 0;
+	int nbytes = 0;
+	int sent = 0;
+	while ((sent = send(sockfd, text + offset, strlen(text), 0)) > 0 || (sent == -1 && errno == EINTR) ) {
+		if (sent > 0) {
+			offset += sent;
+			nbytes -= sent;
+		}
 	}
+
+
+//	while (send(sockfd, text, strlen(text), 0) == -1) {
+//		perror("erreur envoie\n");
+//	}
 }
 
 int do_socket(int domain, int type, int protocol) {
@@ -122,7 +133,7 @@ int get_port(int sock) {
 }
 
 int do_read(char * buffer, int lst_sock) {
-	memset(&buffer, 0, BUFFER_SIZE); //on s'assure d'avoir des valeurs nulles dans le buff
+	memset(buffer, 0, BUFFER_SIZE); //on s'assure d'avoir des valeurs nulles dans le buff
 	int length_r_buff = recv(lst_sock, buffer, BUFFER_SIZE - 1, 0);
 
 	if (length_r_buff < 0) {

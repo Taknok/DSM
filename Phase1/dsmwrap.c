@@ -27,6 +27,7 @@ int main(int argc, char **argv) {
 
 	//get address info from the server
 	char* serv_ip = get_ip(argv[2]);
+	printf("###%s\n", serv_ip);
 
 
 	//get port
@@ -38,11 +39,11 @@ int main(int argc, char **argv) {
 	//connect to remote socket
 	sock_host = do_connect(sock, sock_host, serv_ip, port);
 
-	char * hostname;
-	gethostname(hostname, 100);
+	char hostname[100];
+	gethostname(hostname, 99);
+
 	/* Envoi du nom de machine au lanceur */
 	sprintf(buffer, "<name>%s</name>", hostname);
-	/* Envoi du pid au lanceur */
 
 	do_write(sock, buffer);
 

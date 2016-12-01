@@ -102,7 +102,6 @@ int main(int argc, char *argv[]) {
 		/* creation #include <poll.h>
 		 * de la socket d'ecoute */
 		struct sockaddr_in serv_addr;
-		char ip[ARG_MAX_SIZE];
 
 		int lst_sock = do_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		init_serv_addr(0, &serv_addr);
@@ -167,13 +166,13 @@ int main(int argc, char *argv[]) {
 				newargv[taille] = NULL;
 
 //				sleep(2); //petit sleep pour voir la syncro
-				printf("<<<<<%i\n", getpid());
+//				printf("<<<<<%i\n", getpid());
 				fflush(stdout);
 
 				//synchronisation pere fils
 				sync_child(pipe_father[i], pipe_child[i]);
 
-				printf("<<<<<<<<<<<<<<<<%i\n", getpid());
+//				printf("<<<<<<<<<<<<<<<<%i\n", getpid());
 				fflush(stdout);
 
 				/* jump to new prog : */
@@ -186,12 +185,12 @@ int main(int argc, char *argv[]) {
 
 			} else if (pid > 0) { /* pere */
 
-				printf(">>>>>>%i\n", pid);
+//				printf(">>>>>>%i\n", pid);
 				fflush(stdout);
 
 				//synchronisation pere fils
 				sync_father(pipe_father[i], pipe_child[i]);
-				printf(">>>>>>>>>>>>>>>>>>\n");
+//				printf(">>>>>>>>>>>>>>>>>>\n");
 
 				/* fermeture des extremites des tubes non utiles */
 				close(pipe_out[i][1]);
@@ -199,12 +198,12 @@ int main(int argc, char *argv[]) {
 
 				char buffer[BUFFER_SIZE];
 				char buffer_err[BUFFER_SIZE];
-//				while (read(pipe_out[i][0], buffer, sizeof(buffer)) != 0) {
-//				}
-//				while (read(pipe_err[i][0], buffer_err, sizeof(buffer_err)) != 0) {
-//				}
-//				printf(buffer);
-//				printf(buffer_err);
+				while (read(pipe_out[i][0], buffer, sizeof(buffer)) != 0) {
+				}
+				while (read(pipe_err[i][0], buffer_err, sizeof(buffer_err)) != 0) {
+				}
+				printf(buffer);
+				printf(buffer_err);
 				num_procs_creat++;
 			}
 		}
@@ -213,33 +212,27 @@ int main(int argc, char *argv[]) {
 		memset(fds, 0, sizeof(fds));
 		fds[0].fd = lst_sock;
 		fds[0].events = POLLIN;
-		int num_fds = 1;
 
 		for (i = 0; i < num_procs; i++) {
 
 			//initialisation de la structure pollfd
 			/* + ecoute effective */
-			printf("beeeeeeeee\n");
-			if (!poll(fds, num_fds, -1)) {
-				perror("  problème sur le poll() ");
-				break;
-			}
-			printf("biiii\n");
+			int new_sd = 0;
+			new_sd = accept(lst_sock, NULL, NULL);
 
 			/* on accepte les connexions des processus dsm */
-			char * buffer = (char *) malloc(BUFFER_SIZE * sizeof(char));
-			if (fds[i].fd == lst_sock) {
-				int new_sd = accept(lst_sock, NULL, NULL);
-				fds[num_fds].fd = new_sd;
-				fds[num_fds].events = POLLIN;
-				num_fds++;
-				int retour_client=do_read(buffer,new_sd);
-				printf("Entrée : %s\n", buffer);
-				printf("booooo\n");
-			}
-			printf("baaaaaaaaaa\n");
-			//initialisation du buffer
 
+			char * buffer_sock = (char *) malloc(BUFFER_SIZE * sizeof(char));
+
+			printf("buuuuuuuu\n");
+			fflush(stdout);
+
+			int retour_client = do_read(buffer_sock, new_sd);
+
+			printf("Entrée : %s\n", buffer_sock);
+
+
+			//initialisation du buffer
 
 			/*  On recupere le nom de la machine distante */
 
