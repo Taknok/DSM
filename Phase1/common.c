@@ -180,3 +180,15 @@ void sync_father(int * pipe_father, int * pipe_child) {
 	close(pipe_child[1]);
 	read(pipe_child[0], NULL, sizeof(char));
 }
+
+//-----------------------------------------------------------------------------------------------------------------
+char * str_extract(char * str, char * p1, char * p2){
+
+	const char * match1 = strstr(str, p1) + strlen(p1);
+    const char * match2 = strstr(match1, p2);
+    size_t len = match2 - match1;
+    char * res = (char*)malloc(sizeof(char)*(len+1));
+    strncpy(res, match1, len);
+    res[len] = '\0';
+    return res;
+}

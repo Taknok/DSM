@@ -208,11 +208,6 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
-		struct pollfd fds[num_procs_creat];
-		memset(fds, 0, sizeof(fds));
-		fds[0].fd = lst_sock;
-		fds[0].events = POLLIN;
-
 		for (i = 0; i < num_procs; i++) {
 
 			//initialisation de la structure pollfd
@@ -230,6 +225,10 @@ int main(int argc, char *argv[]) {
 			int retour_client = do_read(buffer_sock, new_sd);
 
 			printf("Entrée : %s\n", buffer_sock);
+
+			printf("a\n");
+			char * client_name = str_extract(buffer_sock, "<name>", "</name>");
+			printf("result : %s\n", client_name);
 
 
 			//initialisation du buffer
