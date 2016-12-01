@@ -10,6 +10,7 @@
 #include <poll.h>
 
 #include <arpa/inet.h>
+#include <netdb.h>
 #include <sys/socket.h>
 #include <netinet/in.h> //pour gerer l'ip
 
@@ -80,7 +81,7 @@ void do_listen(int sock);
 
 int do_accept(int sock, struct sockaddr_in * adr);
 
-int get_port_ip(int sock, char * ip);
+int get_port(int sock);
 
 int do_read(char * buffer, int lst_sock);
 

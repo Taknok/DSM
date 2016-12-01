@@ -108,11 +108,11 @@ int main(int argc, char *argv[]) {
 		init_serv_addr(0, &serv_addr);
 		do_bind(lst_sock, serv_addr);
 		do_listen(lst_sock);
-		int port = get_port_ip(lst_sock, ip);
 
+		int port = get_port(lst_sock);
 		// récupération du nom de la machine
-//		char hostname[1024];
-//		gethostname(hostname, 1023);
+		char hostname[1024];
+		gethostname(hostname, 1023);
 
 		/* creation des fils */
 		num_procs = DSM_NODE_NUM;
@@ -157,7 +157,7 @@ int main(int argc, char *argv[]) {
 				newargv[1] = tab_dsm_proc[i].connect_info.name_machine;
 				newargv[2] = PATH_WRAP;
 				newargv[3] = port_str;
-				newargv[4] = ip;
+				newargv[4] = hostname;
 				newargv[5] = argv[2]; //la commande
 
 				int j = 0;
@@ -199,12 +199,12 @@ int main(int argc, char *argv[]) {
 
 				char buffer[BUFFER_SIZE];
 				char buffer_err[BUFFER_SIZE];
-				while (read(pipe_out[i][0], buffer, sizeof(buffer)) != 0) {
-				}
-				while (read(pipe_err[i][0], buffer_err, sizeof(buffer_err)) != 0) {
-				}
-				printf(buffer);
-				printf(buffer_err);
+//				while (read(pipe_out[i][0], buffer, sizeof(buffer)) != 0) {
+//				}
+//				while (read(pipe_err[i][0], buffer_err, sizeof(buffer_err)) != 0) {
+//				}
+//				printf(buffer);
+//				printf(buffer_err);
 				num_procs_creat++;
 			}
 		}
@@ -219,11 +219,12 @@ int main(int argc, char *argv[]) {
 
 			//initialisation de la structure pollfd
 			/* + ecoute effective */
-
+			printf("beeeeeeeee\n");
 			if (!poll(fds, num_fds, -1)) {
 				perror("  problème sur le poll() ");
 				break;
 			}
+			printf("biiii\n");
 
 			/* on accepte les connexions des processus dsm */
 			char * buffer = (char *) malloc(BUFFER_SIZE * sizeof(char));
@@ -233,9 +234,10 @@ int main(int argc, char *argv[]) {
 				fds[num_fds].events = POLLIN;
 				num_fds++;
 				int retour_client=do_read(buffer,new_sd);
-				printf("Entrée : %s", buffer);
+				printf("Entrée : %s\n", buffer);
+				printf("booooo\n");
 			}
-
+			printf("baaaaaaaaaa\n");
 			//initialisation du buffer
 
 

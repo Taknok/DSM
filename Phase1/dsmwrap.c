@@ -1,5 +1,12 @@
 #include "common_impl.h"
 
+char * get_ip(char * hostname) {
+	struct hostent * serv = gethostbyname(hostname);
+	struct in_addr ** addr_list;
+	addr_list = (struct in_addr **) serv->h_addr_list;
+	return inet_ntoa(*addr_list[0]);
+}
+
 int main(int argc, char **argv) {
 	if (argc < 5) {
 		fprintf(stderr, "Erreur nb arguments");
@@ -19,7 +26,8 @@ int main(int argc, char **argv) {
 	memset(buffer, 0, BUFFER_SIZE);
 
 	//get address info from the server
-	char* serv_ip = argv[2];
+	char* serv_ip = get_ip(argv[2]);
+
 
 	//get port
 	int port = atoi(argv[1]);
@@ -29,7 +37,6 @@ int main(int argc, char **argv) {
 
 	//connect to remote socket
 	sock_host = do_connect(sock, sock_host, serv_ip, port);
-
 
 	char * hostname;
 	gethostname(hostname, 100);
