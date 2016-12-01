@@ -1,4 +1,4 @@
-ALL: default 
+all: default 
 
 CC           = gcc
 CLINKER      = $(CC)
