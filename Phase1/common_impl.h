@@ -47,6 +47,12 @@ typedef struct dsm_proc_conn {
    char * name_machine;
 }dsm_proc_conn_t;
 
+typedef struct
+{
+	char * name;
+	int lst_sock;
+	 //pour plus tard
+}Client;
 
 /* definition du type des infos */
 /* d'identification des processus dsm */

@@ -8,8 +8,8 @@
 int DSM_NODE_NUM = 0;
 int ARG_MAX_SIZE = 100;
 
-char * PATH_WRAP = "~/C/DSM/Phase1/bin/dsmwrap";
-//char * PATH_WRAP = "~/personnel/C/Semestre_7/DSM/Phase1/bin/dsmwrap";
+//char * PATH_WRAP = "~/C/DSM/Phase1/bin/dsmwrap";
+char * PATH_WRAP = "~/personnel/C/Semestre_7/DSM/Phase1/bin/dsmwrap";
 
 /* un tableau gerant les infos d'identification */
 /* des processus dsm */
@@ -208,28 +208,29 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
-		struct pollfd fds[num_procs_creat];
-		memset(fds, 0, sizeof(fds));
-		fds[0].fd = lst_sock;
-		fds[0].events = POLLIN;
+
 
 		for (i = 0; i < num_procs; i++) {
 
-			//initialisation de la structure pollfd
-			/* + ecoute effective */
+
+
+			/* on accepte les connexions des processus dsm */
 			int new_sd = 0;
 			new_sd = accept(lst_sock, NULL, NULL);
 
-			/* on accepte les connexions des processus dsm */
+
 
 			char * buffer_sock = (char *) malloc(BUFFER_SIZE * sizeof(char));
-
-			printf("buuuuuuuu\n");
 			fflush(stdout);
 
 			int retour_client = do_read(buffer_sock, new_sd);
-
 			printf("Entrée : %s\n", buffer_sock);
+
+
+			Client  liste_client[num_procs];
+			liste_client[i].name=buffer_sock;
+			printf("%s\n", liste_client[i].name);
+
 
 
 			//initialisation du buffer
