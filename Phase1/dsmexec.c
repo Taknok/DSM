@@ -3,14 +3,13 @@
 #include <sys/wait.h>
 
 #include "common_impl.h"
-#include "basic.h"
 
 /* variables globales */
 int DSM_NODE_NUM = 0;
 int ARG_MAX_SIZE = 100;
-int BUFFER_SIZE = 1024;
-char * PATH_WRAP = "~/C/DSM/Phase1/bin/dsmwrap";
-//char * PATH_WRAP = "~/personnel/C/Semestre_7/DSM/Phase1/bin/dsmwrap";
+
+//char * PATH_WRAP = "~/C/DSM/Phase1/bin/dsmwrap";
+char * PATH_WRAP = "~/personnel/C/Semestre_7/DSM/Phase1/bin/dsmwrap";
 
 /* un tableau gerant les infos d'identification */
 /* des processus dsm */
@@ -170,6 +169,7 @@ int main(int argc, char *argv[]) {
 				printf("<<<<<%i\n", getpid());
 				fflush(stdout);
 
+				//synchronisation pere fils
 				sync_child(pipe_father[i], pipe_child[i]);
 
 				printf("<<<<<<<<<<<<<<<<%i\n", getpid());
@@ -188,8 +188,8 @@ int main(int argc, char *argv[]) {
 				printf(">>>>>>%i\n", pid);
 				fflush(stdout);
 
+				//synchronisation pere fils
 				sync_father(pipe_father[i], pipe_child[i]);
-
 				printf(">>>>>>>>>>>>>>>>>>\n");
 
 				/* fermeture des extremites des tubes non utiles */
@@ -218,29 +218,28 @@ int main(int argc, char *argv[]) {
 
 			//initialisation de la structure pollfd
 			/* + ecoute effective */
-			//int poll(struct pollfd *fds, nfds_t nfds, int délai);
+
 			if (!poll(fds, num_fds, -1)) {
 				perror("  problème sur le poll() ");
 				break;
 			}
 
+			/* on accepte les connexions des processus dsm */
+			char * buffer = (char *) malloc(BUFFER_SIZE * sizeof(char));
 			if (fds[i].fd == lst_sock) {
 				int new_sd = accept(lst_sock, NULL, NULL);
-				if (new_sd < 0) {
-					if (errno != EWOULDBLOCK) {
-						perror("  accept() failed");
-					}
-					break;
-				}
-
 				fds[num_fds].fd = new_sd;
 				fds[num_fds].events = POLLIN;
 				num_fds++;
+				int retour_client=do_read(buffer,new_sd);
+				printf("Entrée : %s", buffer);
 			}
 
-			/* on accepte les connexions des processus dsm */
+			//initialisation du buffer
+
 
 			/*  On recupere le nom de la machine distante */
+
 			/* 1- d'abord la taille de la chaine */
 			/* 2- puis la chaine elle-meme */
 
