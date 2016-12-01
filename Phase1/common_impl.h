@@ -18,6 +18,7 @@
 #define CATCH } else {
 #define END_TRY } }while (0)
 #define THROW longjmp(env, 1)
+#define BUFFER_SIZE 1025
 
 //un peu de booléens
 #define FALSE 0
@@ -79,6 +80,8 @@ void do_listen(int sock);
 int do_accept(int sock, struct sockaddr_in * adr);
 
 int get_port(int sock);
+
+int do_read(char * buffer, int lst_sock);
 
 //-------------------------------------------------------------------------------------------------
 void sync_child(int * pipe_father, int * pipe_child);

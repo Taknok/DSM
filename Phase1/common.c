@@ -120,6 +120,18 @@ int get_port(int sock) {
 	return 0;
 }
 
+
+int do_read(char * buffer, int lst_sock){
+    memset(&buffer, 0, BUFFER_SIZE); //on s'assure d'avoir des valeurs nulles dans le buff
+    int length_r_buff = recv(lst_sock, buffer, BUFFER_SIZE -1, 0);
+
+    if (length_r_buff < 0) {
+        printf("erreur rien n'a été recu\n");
+    } else {
+        buffer[length_r_buff] = '\0';
+    }
+    return length_r_buff;
+}
 //-----------------------------------------------------------------------------------------------------------------
 
 void sync_child(int * pipe_father, int * pipe_child) {
