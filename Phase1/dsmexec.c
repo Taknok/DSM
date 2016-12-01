@@ -157,7 +157,7 @@ int main(int argc, char *argv[]) {
 				newargv[2] = PATH_WRAP;
 				newargv[3] = port_str;
 				newargv[4] = hostname;
-				newargv[5] = argv[2];
+				newargv[5] = argv[2]; //la commande
 
 				int j = 0;
 				for (j = 3; j <= argc; j++) { // met les arguments dans le tableau d'execution du ssh

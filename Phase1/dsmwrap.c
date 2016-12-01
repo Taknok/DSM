@@ -1,6 +1,9 @@
 #include "common_impl.h"
 
 int main(int argc, char **argv) {
+	if (argc < 5) {
+		fprintf(stderr, "Erreur nb arguments");
+	}
 	/* processus intermediaire pour "nettoyer" */
 	/* la liste des arguments qu'on va passer */
 	/* a la commande a executer vraiment */
@@ -9,8 +12,28 @@ int main(int argc, char **argv) {
 	/* au lanceur et envoyer/recevoir les infos */
 	/* necessaires pour la phase dsm_init */
 
-	/* Envoi du nom de machine au lanceur */
+	struct sockaddr_in sock_host;
+	int sock;
 
+	char buffer[BUFFER_SIZE];
+	memset(buffer, 0, BUFFER_SIZE);
+
+	//get address info from the server
+	char* serv_name = argv[2];
+	//get port
+	int port = atoi(argv[1]);
+
+	//get the socket
+	sock = do_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+	//connect to remote socket
+	sock_host = do_connect(sock, sock_host, serv_name, port);
+
+
+	char * hostname;
+	gethostname(hostname, 100);
+	/* Envoi du nom de machine au lanceur */
+	sprintf(buffer, "<name>%s</name>")
 	/* Envoi du pid au lanceur */
 
 	/* Creation de la socket d'ecoute pour les */
