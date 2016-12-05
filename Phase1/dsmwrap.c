@@ -2,10 +2,14 @@
 
 
 
-void deserialize(char * serialized, Client * liste_client, int taille) {
+int deserialize(char * serialized, Client * liste_client, int * taille) {
 	int i;
 	char * tmp_seria = serialized;
-	for (i = 0; i < taille; ++i) {
+	char * actual_proc_str = str_extract(tmp_seria, "<actual_proc>", "</actual_proc>");
+	int actual_proc=atoi(actual_proc_str);
+	char * num_proc = str_extract(tmp_seria, "<num_proc>", "</num_proc>");
+	*taille=atoi(num_proc);
+	for (i = 0; i < *taille; ++i) {
 		char * machine = str_extract(tmp_seria, "<machine>", "</machine>");
 
 		char * name = str_extract(machine, "<name>", "</name>");
@@ -17,6 +21,7 @@ void deserialize(char * serialized, Client * liste_client, int taille) {
 		liste_client[i].num_client = atoi(rank);
 		tmp_seria = strstr(tmp_seria, "</machine>"); //on repointe a une machine d'apres
 	}
+	return actual_proc;
 }
 
 int main(int argc, char **argv) {
@@ -87,19 +92,29 @@ int main(int argc, char **argv) {
 	BUFFER_SIZE * 3 * nb_procs * sizeof(char)); //3 car 3 valeurs dans un proc
 
 	int retour_client = do_read(buffer_sock, sock_recv);
-//	printf("%s\n",buffer_sock);
+	printf("%s\n",buffer_sock);
 	Client liste_client[nb_procs];
 	int i;
 
-	deserialize(buffer_sock, liste_client, nb_procs);
-//	for (i = 0; i < nb_procs; ++i) {
-//		printf("%s\n", liste_client[i].name);
-//		printf("%i\n", liste_client[i].port_client);
-//		printf("%i\n", liste_client[i].num_client);
-//
-//	}
+
+	int num_procs;
+	int actual_proc=deserialize(buffer_sock, liste_client, &num_procs);
+	printf("%i\n",actual_proc);
+	printf("%i\n", num_procs);
+
+	for (i = 0; i < nb_procs; ++i) {
+		printf("%s\n", liste_client[i].name);
+		printf("%i\n", liste_client[i].port_client);
+		printf("%i\n", liste_client[i].num_client);
+
+	}
+
+	memset(buffer_sock,0,BUFFER_SIZE * 3 * nb_procs * sizeof(char));
+
+	do_read(buffer_sock, sock_recv);
+	printf("%s\n",buffer_sock);
 	fflush(stdout);
 	/* on execute la bonne commande */
-	execlp(argv[4], argv[5], NULL);
+//	execlp(argv[4], argv[5], NULL);
 	return 0;
 }

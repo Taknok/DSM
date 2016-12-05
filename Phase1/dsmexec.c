@@ -55,6 +55,7 @@ void serialize(Client * client, int taille_tab, char * buffer) {
 //	char * buffer = malloc(taille_tab * sizeof(Client)*sizeof(char));
 
 	int i = 0;
+	sprintf(buffer, "%s<num_proc>%i</num_proc>", buffer, taille_tab);
 	for (i = 0; i < taille_tab; ++i) {
 		sprintf(buffer, "%s<machine>", buffer);
 		sprintf(buffer, "%s<name>%s</name>", buffer, client[i].name);
@@ -284,7 +285,8 @@ int main(int argc, char *argv[]) {
 		/* envoi du nombre de processus aux processus dsm*/
 		/* envoi des rangs aux processus dsm */
 		/* envoi des infos de connexion aux processus */
-		char liste_serialized[num_procs * BUFFER_SIZE * 3]; //3 car 3 arguments dans la struct
+		char liste_serialized[num_procs * BUFFER_SIZE*sizeof(char) * 3 ]; //3 car 3 arguments dans la struct
+		char send[num_procs * BUFFER_SIZE*sizeof(char) * 3 + BUFFER_SIZE*sizeof(char)];
 		serialize(liste_client, num_procs, liste_serialized);
 		for (i = 0; i < num_procs; ++i) {
 			struct sockaddr_in sock_host;
@@ -292,6 +294,7 @@ int main(int argc, char *argv[]) {
 			int client_port;
 			char* client_ip;
 
+			memset(send,0,num_procs * BUFFER_SIZE*sizeof(char) * 3 + BUFFER_SIZE*sizeof(char));
 			client_ip = get_ip(liste_client[i].name);
 
 			client_port = liste_client[i].port_client;
@@ -299,8 +302,14 @@ int main(int argc, char *argv[]) {
 			sock = do_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 			//connect to remote socket
 			sock_host = do_connect(sock, sock_host, client_ip, client_port);
+			char num_client_str[BUFFER_SIZE];
+			sprintf(num_client_str,"<actual_proc>%i</actual_proc>",liste_client[i].num_client);
+			strcat(send,num_client_str);
+			strcat(send,liste_serialized);
 
-			do_write(sock, liste_serialized);
+
+			do_write(sock, send);
+
 			close(sock);
 		}
 
