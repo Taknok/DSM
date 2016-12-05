@@ -82,39 +82,39 @@ int main(int argc, char **argv) {
 	do_write(sock, buffer);
 
 	/* ECOUTE */
-	int sock_recv = 0;
-	int nb_procs = atoi(argv[3]);
-
-
-	sock_recv = accept(lst_sock, NULL, NULL);
-	//initialisation du buffer
-	char * buffer_sock = (char *) malloc(
-	BUFFER_SIZE * 3 * nb_procs * sizeof(char)); //3 car 3 valeurs dans un proc
-
-	int retour_client = do_read(buffer_sock, sock_recv);
-	printf("%s\n",buffer_sock);
-	Client liste_client[nb_procs];
-	int i;
-
-
-	int num_procs;
-	int actual_proc=deserialize(buffer_sock, liste_client, &num_procs);
-	printf("%i\n",actual_proc);
-	printf("%i\n", num_procs);
-
-	for (i = 0; i < nb_procs; ++i) {
-		printf("%s\n", liste_client[i].name);
-		printf("%i\n", liste_client[i].port_client);
-		printf("%i\n", liste_client[i].num_client);
-
-	}
-
-	memset(buffer_sock,0,BUFFER_SIZE * 3 * nb_procs * sizeof(char));
-
-	do_read(buffer_sock, sock_recv);
-	printf("%s\n",buffer_sock);
-	fflush(stdout);
+//	int sock_recv = 0;
+//	int nb_procs = atoi(argv[3]);
+//
+//
+////	sock_recv = accept(lst_sock, NULL, NULL);
+//	//initialisation du buffer
+//	char * buffer_sock = (char *) malloc(
+//	BUFFER_SIZE * 3 * nb_procs * sizeof(char)); //3 car 3 valeurs dans un proc
+//
+//	int retour_client = do_read(buffer_sock, sock_recv);
+//	printf("%s\n",buffer_sock);
+//	Client liste_client[nb_procs];
+//	int i;
+//
+//
+//	int num_procs;
+//	int actual_proc=deserialize(buffer_sock, liste_client, &num_procs);
+//	printf("%i\n",actual_proc);
+//	printf("%i\n", num_procs);
+//
+//	for (i = 0; i < nb_procs; ++i) {
+//		printf("%s\n", liste_client[i].name);
+//		printf("%i\n", liste_client[i].port_client);
+//		printf("%i\n", liste_client[i].num_client);
+//
+//	}
+//
+//	memset(buffer_sock,0,BUFFER_SIZE * 3 * nb_procs * sizeof(char));
+//
+//	do_read(buffer_sock, sock_recv);
+//	printf("%s\n",buffer_sock);
+//	fflush(stdout);
 	/* on execute la bonne commande */
-//	execlp(argv[4], argv[5], NULL);
+	execvp(argv[4], &argv[4]);
 	return 0;
 }
