@@ -1,10 +1,22 @@
 #include "common_impl.h"
 
-char * get_ip(char * hostname) {
-	struct hostent * serv = gethostbyname(hostname);
-	struct in_addr ** addr_list;
-	addr_list = (struct in_addr **) serv->h_addr_list;
-	return inet_ntoa(*addr_list[0]);
+
+
+void deserialize(char * serialized, Client * liste_client, int taille) {
+	int i;
+	char * tmp_seria = serialized;
+	for (i = 0; i < taille; ++i) {
+		char * machine = str_extract(tmp_seria, "<machine>", "</machine>");
+
+		char * name = str_extract(machine, "<name>", "</name>");
+		char * port = str_extract(machine, "<port>", "</port>");
+		char * rank = str_extract(machine, "<rank>", "</rank>");
+
+		liste_client[i].name = name;
+		liste_client[i].port_client = atoi(port);
+		liste_client[i].num_client = atoi(rank);
+		tmp_seria = strstr(tmp_seria, "</machine>"); //on repointe a une machine d'apres
+	}
 }
 
 int main(int argc, char **argv) {
@@ -19,6 +31,7 @@ int main(int argc, char **argv) {
 	/* au lanceur et envoyer/recevoir les infos */
 	/* necessaires pour la phase dsm_init */
 
+
 	struct sockaddr_in sock_host;
 	int sock;
 
@@ -27,7 +40,7 @@ int main(int argc, char **argv) {
 
 	//get address info from the server
 	char* serv_ip = get_ip(argv[2]);
-	printf("###%s\n", serv_ip);
+//	printf("###%s\n", serv_ip);
 
 	//get port
 	int serv_port = atoi(argv[1]);
@@ -60,9 +73,33 @@ int main(int argc, char **argv) {
 	sprintf(buffer, "%s<port>%i</port>", buffer, port);
 
 	/* ENVOIE */
+
 	do_write(sock, buffer);
 
+	/* ECOUTE */
+	int sock_recv = 0;
+	int nb_procs = atoi(argv[3]);
+
+
+	sock_recv = accept(lst_sock, NULL, NULL);
+	//initialisation du buffer
+	char * buffer_sock = (char *) malloc(
+	BUFFER_SIZE * 3 * nb_procs * sizeof(char)); //3 car 3 valeurs dans un proc
+
+	int retour_client = do_read(buffer_sock, sock_recv);
+//	printf("%s\n",buffer_sock);
+	Client liste_client[nb_procs];
+	int i;
+
+	deserialize(buffer_sock, liste_client, nb_procs);
+//	for (i = 0; i < nb_procs; ++i) {
+//		printf("%s\n", liste_client[i].name);
+//		printf("%i\n", liste_client[i].port_client);
+//		printf("%i\n", liste_client[i].num_client);
+//
+//	}
+	fflush(stdout);
 	/* on execute la bonne commande */
-	execlp(argv[3], argv[4], NULL);
+	execlp(argv[4], argv[5], NULL);
 	return 0;
 }

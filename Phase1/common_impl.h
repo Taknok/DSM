@@ -89,6 +89,8 @@ int do_accept(int sock, struct sockaddr_in * adr);
 
 int get_port(int sock);
 
+char * get_ip(char * hostname);
+
 int do_read(char * buffer, int lst_sock);
 
 struct sockaddr_in do_connect(int sock, struct sockaddr_in sock_host, char* hostname, int port);

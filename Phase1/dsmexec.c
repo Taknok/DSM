@@ -8,8 +8,8 @@
 int DSM_NODE_NUM = 0;
 int ARG_MAX_SIZE = 100;
 
-char * PATH_WRAP = "~/C/DSM/Phase1/bin/dsmwrap";
-//char * PATH_WRAP = "~/personnel/C/Semestre_7/DSM/Phase1/bin/dsmwrap";
+//char * PATH_WRAP = "~/C/DSM/Phase1/bin/dsmwrap";
+char * PATH_WRAP = "~/personnel/C/Semestre_7/DSM/Phase1/bin/dsmwrap";
 
 /* un tableau gerant les infos d'identification */
 /* des processus dsm */
@@ -51,6 +51,19 @@ int count_line(FILE * FP) {
 	return nb_line;
 }
 
+void serialize(Client * client, int taille_tab, char * buffer) {
+//	char * buffer = malloc(taille_tab * sizeof(Client)*sizeof(char));
+
+	int i = 0;
+	for (i = 0; i < taille_tab; ++i) {
+		sprintf(buffer, "%s<machine>", buffer);
+		sprintf(buffer, "%s<name>%s</name>", buffer, client[i].name);
+		sprintf(buffer, "%s<port>%i</port>", buffer, client[i].port_client);
+		sprintf(buffer, "%s<rank>%i</rank>", buffer, client[i].num_client);
+		sprintf(buffer, "%s</machine>", buffer);
+	}
+}
+
 int main(int argc, char *argv[]) {
 	if (argc < 3) {
 		usage();
@@ -79,6 +92,7 @@ int main(int argc, char *argv[]) {
 		/* la machine est un des elements d'identification */
 		dsm_proc_t tab_dsm_proc[DSM_NODE_NUM];
 		init_tab_dsm_proc(tab_dsm_proc, DSM_NODE_NUM);
+		struct client_t liste_client[DSM_NODE_NUM];
 
 		int i = 0;
 		int r;
@@ -94,6 +108,7 @@ int main(int argc, char *argv[]) {
 			tab_dsm_proc[i].connect_info.name_machine[strlen(
 					tab_dsm_proc[i].connect_info.name_machine) - 1] = '\0';
 			tab_dsm_proc[i].connect_info.rank = i;
+			liste_client[i].num_client = i;
 			i++;
 		}
 
@@ -160,10 +175,12 @@ int main(int argc, char *argv[]) {
 				/* Creation du tableau d'arguments pour le ssh */
 				//cast du port et ip en chaine de caractères
 				char port_str[ARG_MAX_SIZE];
+				char dsm_num_str[ARG_MAX_SIZE];
 				sprintf(port_str, "%i", port);
+				sprintf(dsm_num_str, "%i", DSM_NODE_NUM);
 
 				//PB POSSIBLE AVEC LE REALLOC DE POINTEUR CONSTANT
-				int taille = 4 + argc - 2 + 1;
+				int taille = 4 + argc ;
 				char * newargv[taille + 1];
 
 				newargv[0] = "ssh";
@@ -171,11 +188,12 @@ int main(int argc, char *argv[]) {
 				newargv[2] = PATH_WRAP;
 				newargv[3] = port_str;
 				newargv[4] = hostname;
-				newargv[5] = argv[2]; //la commande
+				newargv[5] = dsm_num_str;
+				newargv[6] = argv[2]; //la commande
 
 				int j = 0;
 				for (j = 3; j <= argc; j++) { // met les arguments dans le tableau d'execution du ssh
-					newargv[4 + j - 1] = argv[j];
+					newargv[4 + j] = argv[j];
 				}
 				newargv[taille] = NULL;
 
@@ -200,7 +218,7 @@ int main(int argc, char *argv[]) {
 			} else if (pid > 0) { /* pere */
 
 //				printf(">>>>>>%i\n", pid);
-				fflush(stdout);
+//				fflush(stdout);
 
 				//synchronisation pere fils
 				sync_father(pipe_father[i], pipe_child[i]);
@@ -210,19 +228,20 @@ int main(int argc, char *argv[]) {
 				close(pipe_out[i][1]);
 				close(pipe_err[i][1]);
 
-				char buffer[BUFFER_SIZE];
-				char buffer_err[BUFFER_SIZE];
-				while (read(pipe_out[i][0], buffer, sizeof(buffer)) != 0) {
-				}
-				while (read(pipe_err[i][0], buffer_err, sizeof(buffer_err)) != 0) {
-				}
-				printf(buffer);
-				printf(buffer_err);
+//				char buffer[BUFFER_SIZE];
+//				char buffer_err[BUFFER_SIZE];
+//				memset(buffer, 0, BUFFER_SIZE*sizeof(char));
+//				memset(buffer_err, 0, BUFFER_SIZE*sizeof(char));
+//				while (read(pipe_out[i][0], buffer, sizeof(buffer)) != 0) {
+//				}
+//				while (read(pipe_err[i][0], buffer_err, sizeof(buffer_err)) != 0) {
+//				}
+//				printf(buffer);
+//				printf(buffer_err);
 				num_procs_creat++;
 			}
 		}
 
-		struct client_t liste_client[num_procs];
 		for (i = 0; i < num_procs; i++) {
 
 			/* on accepte les connexions des processus dsm */
@@ -241,18 +260,62 @@ int main(int argc, char *argv[]) {
 			char * client_port = str_extract(buffer_sock, "<port>", "</port>");
 
 			liste_client[i].name = client_name;
-			liste_client[i].port_client = client_port;
+			liste_client[i].port_client = atoi(client_port);
+			close(new_sd);
 
 //			printf("%s\n", liste_client[i].name);
-//			printf("%s\n", liste_client[i].port_client);
+//			printf("%i\n", liste_client[i].port_client);
+//			printf("%i\n", liste_client[i].num_client);
+
+			//affiche les pipes
+//			char buffer[BUFFER_SIZE];
+//			char buffer_err[BUFFER_SIZE];
+//			memset(buffer, 0, BUFFER_SIZE * sizeof(char));
+//			memset(buffer_err, 0, BUFFER_SIZE * sizeof(char));
+//			while (read(pipe_out[i][0], buffer, sizeof(buffer)) != 0) {
+//			}
+//			while (read(pipe_err[i][0], buffer_err, sizeof(buffer_err)) != 0) {
+//			}
+//			printf(buffer);
+//			printf(buffer_err);
 
 		}
 
 		/* envoi du nombre de processus aux processus dsm*/
-
 		/* envoi des rangs aux processus dsm */
-
 		/* envoi des infos de connexion aux processus */
+		char liste_serialized[num_procs * BUFFER_SIZE * 3]; //3 car 3 arguments dans la struct
+		serialize(liste_client, num_procs, liste_serialized);
+		for (i = 0; i < num_procs; ++i) {
+			struct sockaddr_in sock_host;
+			int sock;
+			int client_port;
+			char* client_ip;
+
+			client_ip = get_ip(liste_client[i].name);
+
+			client_port = liste_client[i].port_client;
+			//get the socket
+			sock = do_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+			//connect to remote socket
+			sock_host = do_connect(sock, sock_host, client_ip, client_port);
+
+			do_write(sock, liste_serialized);
+			close(sock);
+		}
+
+		for (i = 0; i < num_procs; ++i) {
+			char buffer[BUFFER_SIZE];
+			char buffer_err[BUFFER_SIZE];
+			memset(buffer, 0, BUFFER_SIZE * sizeof(char));
+			memset(buffer_err, 0, BUFFER_SIZE * sizeof(char));
+			while (read(pipe_out[i][0], buffer, sizeof(buffer)) != 0) {
+			}
+			while (read(pipe_err[i][0], buffer_err, sizeof(buffer_err)) != 0) {
+			}
+			printf(buffer);
+			printf(buffer_err);
+		}
 
 		/* gestion des E/S : on recupere les caracteres */
 		/* sur les tubes de redirection de stdout/stderr */

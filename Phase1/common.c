@@ -132,6 +132,13 @@ int get_port(int sock) {
 	return port;
 }
 
+char * get_ip(char * hostname) {
+	struct hostent * serv = gethostbyname(hostname);
+	struct in_addr ** addr_list;
+	addr_list = (struct in_addr **) serv->h_addr_list;
+	return inet_ntoa(*addr_list[0]);
+}
+
 int do_read(char * buffer, int lst_sock) {
 	memset(buffer, 0, BUFFER_SIZE); //on s'assure d'avoir des valeurs nulles dans le buff
 	int length_r_buff = recv(lst_sock, buffer, BUFFER_SIZE - 1, 0);
@@ -153,10 +160,9 @@ struct sockaddr_in do_connect(int sock, struct sockaddr_in sock_host, char* host
     sock_host.sin_port = htons(port);
 
     //check de l'erreur
-    if (connect(sock, (struct sockaddr *) &sock_host, sizeof(sock_host)) == -1) {
+    while(connect(sock, (struct sockaddr *) &sock_host, sizeof(sock_host)) == -1) {
         perror("erreur connect");
-        printf("%s , %i\n", hostname, port);
-        exit(-1);
+//        printf("%s , %i\n", hostname, port);
     }
     return sock_host;
 }
@@ -192,3 +198,4 @@ char * str_extract(char * str, char * p1, char * p2){
     res[len] = '\0';
     return res;
 }
+
