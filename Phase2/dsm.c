@@ -130,6 +130,7 @@ static void segv_handler(int sig, siginfo_t *info, void *context)
 char *dsm_init(int argc, char **argv)
 {   
    struct sigaction act;
+
    int index;   
    
    /* reception du nombre de processus dsm envoye */
