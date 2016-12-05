@@ -15,6 +15,8 @@
 #define PAGE_SIZE   (sysconf(_SC_PAGE_SIZE))
 #define BASE_ADDR   (TOP_ADDR - (PAGE_NUMBER * PAGE_SIZE))
 
+#define BUFFER_SIZE 1025
+
 typedef enum
 {
    NO_ACCESS, 
