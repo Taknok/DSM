@@ -1,3 +1,6 @@
+#ifndef DSM
+#define DSM
+
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
@@ -5,8 +8,6 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <sys/mman.h>
-
-
 
 /* fin des includes */
 
@@ -49,3 +50,5 @@ extern int DSM_NODE_NUM;
 
 char *dsm_init( int argc, char **argv);
 void  dsm_finalize( void );
+
+#endif

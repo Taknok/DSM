@@ -1,4 +1,6 @@
 #include "dsm.h"
+#include "common_impl.h"
+
 
 int DSM_NODE_NUM; /* nombre de processus dsm */
 int DSM_NODE_ID;  /* rang (= numero) du processus */ 
@@ -153,9 +155,7 @@ static void segv_handler(int sig, siginfo_t *info, void *context)
 char *dsm_init(int argc, char **argv)
 {   
    struct sigaction act;
-
    int index;
-
 
    /* ECOUTE */
    	int sock_recv = 0;
@@ -191,6 +191,7 @@ char *dsm_init(int argc, char **argv)
    	do_read(buffer_sock, sock_recv);
    	printf("%s\n",buffer_sock);
    	fflush(stdout);
+
    
    /* reception du nombre de processus dsm envoye */
    /* par le lanceur de programmes (DSM_NODE_NUM)*/
