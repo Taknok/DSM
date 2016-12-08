@@ -230,7 +230,6 @@ dsmwrap.o: dsmwrap.c.o
 # target to build an object file
 dsmwrap.c.o:
 	$(MAKE) -f CMakeFiles/dsmwrap.dir/build.make CMakeFiles/dsmwrap.dir/dsmwrap.c.o
-	$(MAKE) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/dsmwrap.c.o
 .PHONY : dsmwrap.c.o
 
 dsmwrap.i: dsmwrap.c.i
@@ -239,7 +238,6 @@ dsmwrap.i: dsmwrap.c.i
 # target to preprocess a source file
 dsmwrap.c.i:
 	$(MAKE) -f CMakeFiles/dsmwrap.dir/build.make CMakeFiles/dsmwrap.dir/dsmwrap.c.i
-	$(MAKE) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/dsmwrap.c.i
 .PHONY : dsmwrap.c.i
 
 dsmwrap.s: dsmwrap.c.s
@@ -248,8 +246,31 @@ dsmwrap.s: dsmwrap.c.s
 # target to generate assembly for a file
 dsmwrap.c.s:
 	$(MAKE) -f CMakeFiles/dsmwrap.dir/build.make CMakeFiles/dsmwrap.dir/dsmwrap.c.s
-	$(MAKE) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/dsmwrap.c.s
 .PHONY : dsmwrap.c.s
+
+test.o: test.c.o
+.PHONY : test.o
+
+# target to build an object file
+test.c.o:
+	$(MAKE) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/test.c.o
+.PHONY : test.c.o
+
+test.i: test.c.i
+.PHONY : test.i
+
+# target to preprocess a source file
+test.c.i:
+	$(MAKE) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/test.c.i
+.PHONY : test.c.i
+
+test.s: test.c.s
+.PHONY : test.s
+
+# target to generate assembly for a file
+test.c.s:
+	$(MAKE) -f CMakeFiles/test.dir/build.make CMakeFiles/test.dir/test.c.s
+.PHONY : test.c.s
 
 # Help Target
 help:
@@ -274,6 +295,9 @@ help:
 	@echo "... dsmwrap.o"
 	@echo "... dsmwrap.i"
 	@echo "... dsmwrap.s"
+	@echo "... test.o"
+	@echo "... test.i"
+	@echo "... test.s"
 .PHONY : help
 
 

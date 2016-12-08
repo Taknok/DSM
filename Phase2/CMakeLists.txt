@@ -43,7 +43,5 @@ SET(SRC_TEST
 	test.c
 )
 
-add_executable(test ${SRC_DSMWRAP} ${SRC_COMMONS})
+add_executable(test ${SRC_TEST} ${SRC_COMMONS})
 target_link_libraries (test ${CMAKE_THREAD_LIBS_INIT})
-
-
