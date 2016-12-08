@@ -1,6 +1,5 @@
 #include <unistd.h>
 #include <signal.h>
-#include <sys/wait.h>
 
 #include "common_impl.h"
 
@@ -26,13 +25,13 @@ void usage(void) {
 
 //traitant pour gérer les fils zombi
 void sigchld_handler(int sig) {
-	int pid;
+	pid_t pid;
+	int status;
 
-	if ((pid = wait(NULL)) == -1) /* suppression du fils zombi */
+	while ((pid = waitpid(-1, &status, WNOHANG)) == -1) /* suppression du fils zombi */
 	{
 		perror("wait handler ");
-		errno = 0;
-		return;
+
 	}
 	printf("Prise en compte du fils : %d\n", pid);
 }
