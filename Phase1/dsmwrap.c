@@ -1,14 +1,13 @@
 #include "common_impl.h"
 
-
-
 int deserialize(char * serialized, Client * liste_client, int * taille) {
 	int i;
 	char * tmp_seria = serialized;
-	char * actual_proc_str = str_extract(tmp_seria, "<actual_proc>", "</actual_proc>");
-	int actual_proc=atoi(actual_proc_str);
+	char * actual_proc_str = str_extract(tmp_seria, "<actual_proc>",
+			"</actual_proc>");
+	int actual_proc = atoi(actual_proc_str);
 	char * num_proc = str_extract(tmp_seria, "<num_proc>", "</num_proc>");
-	*taille=atoi(num_proc);
+	*taille = atoi(num_proc);
 	for (i = 0; i < *taille; ++i) {
 		char * machine = str_extract(tmp_seria, "<machine>", "</machine>");
 
@@ -25,6 +24,10 @@ int deserialize(char * serialized, Client * liste_client, int * taille) {
 }
 
 int main(int argc, char **argv) {
+
+	fprintf(stdout, "============== \n");
+	fflush(stdout);
+
 	if (argc < 5) {
 		fprintf(stderr, "Erreur nb arguments");
 	}
@@ -35,7 +38,6 @@ int main(int argc, char **argv) {
 	/* creation d'une socket pour se connecter au */
 	/* au lanceur et envoyer/recevoir les infos */
 	/* necessaires pour la phase dsm_init */
-
 
 	struct sockaddr_in sock_host;
 	int sock;
@@ -115,6 +117,7 @@ int main(int argc, char **argv) {
 //	printf("%s\n",buffer_sock);
 //	fflush(stdout);
 	/* on execute la bonne commande */
+
 	execvp(argv[4], &argv[4]);
 	return 0;
 }
