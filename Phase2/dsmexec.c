@@ -1,6 +1,5 @@
 #include <unistd.h>
 #include <signal.h>
-#include <sys/wait.h>
 
 #include "common_impl.h"
 
@@ -8,8 +7,8 @@
 int DSM_NODE_NUM = 0;
 int ARG_MAX_SIZE = 100;
 
-//char * PATH_WRAP = "~/C/DSM/Phase1/bin/dsmwrap";
-char * PATH_WRAP = "~/personnel/C/Semestre_7/DSM/Phase1/bin/dsmwrap";
+char * PATH_WRAP = "~/C/DSM/Phase2/bin/dsmwrap";
+//char * PATH_WRAP = "~/personnel/C/Semestre_7/DSM/Phase2/bin/dsmwrap";
 
 /* un tableau gerant les infos d'identification */
 /* des processus dsm */
@@ -26,13 +25,13 @@ void usage(void) {
 
 //traitant pour gérer les fils zombi
 void sigchld_handler(int sig) {
-	int pid;
+	pid_t pid;
+	int status;
 
-	if ((pid = wait(NULL)) == -1) /* suppression du fils zombi */
+	while ((pid = waitpid(-1, &status, WNOHANG)) == -1) /* suppression du fils zombi */
 	{
 		perror("wait handler ");
-		errno = 0;
-		return;
+
 	}
 	printf("Prise en compte du fils : %d\n", pid);
 }
@@ -77,7 +76,6 @@ int main(int argc, char *argv[]) {
 		memset(&custom_sigchild, 0, sizeof(struct sigaction));
 		custom_sigchild.sa_handler = sigchld_handler;
 		sigaction(SIGCHLD, &custom_sigchild, NULL);
-
 		/* lecture du fichier de machines */
 		/* 1- on recupere le nombre de processus a lancer */
 
@@ -145,7 +143,6 @@ int main(int argc, char *argv[]) {
 
 			pipe(pipe_father[i]);
 			pipe(pipe_child[i]);
-
 			pid = fork();
 			if (pid == -1)
 				ERROR_EXIT("fork");
@@ -154,15 +151,15 @@ int main(int argc, char *argv[]) {
 
 				/* Fermeture des descripteurs de fichiers du pere (copié a cause du fork)*/
 				int k = 0;
-				for (k = 0; k < i; ++k) {
+				for (k = 0; k < i - 1; ++k) {
 					close(pipe_out[k][0]);
 					close(pipe_out[k][1]);
 					close(pipe_err[k][0]);
 					close(pipe_err[k][1]);
-					close(pipe_father[k][0]);
-					close(pipe_father[k][1]);
-					close(pipe_child[k][0]);
-					close(pipe_child[k][1]);
+//					close(pipe_father[k][0]);
+//					close(pipe_father[k][1]);
+//					close(pipe_child[k][0]);
+//					close(pipe_child[k][1]);
 				}
 
 				/* redirection stdout */
@@ -178,7 +175,10 @@ int main(int argc, char *argv[]) {
 				char port_str[ARG_MAX_SIZE];
 				char dsm_num_str[ARG_MAX_SIZE];
 				sprintf(port_str, "%i", port);
-				sprintf(dsm_num_str, "%i", DSM_NODE_NUM);
+				char cwd[ARG_MAX_SIZE];
+				if (getcwd(cwd, sizeof(cwd)) == NULL){
+					perror("getcwd() error");
+				}
 
 				//PB POSSIBLE AVEC LE REALLOC DE POINTEUR CONSTANT
 				int taille = 4 + argc;
@@ -189,7 +189,7 @@ int main(int argc, char *argv[]) {
 				newargv[2] = PATH_WRAP;
 				newargv[3] = port_str;
 				newargv[4] = hostname;
-				newargv[5] = dsm_num_str;
+				newargv[5] = cwd;
 				newargv[6] = argv[2]; //la commande
 
 				int j = 0;
@@ -197,24 +197,24 @@ int main(int argc, char *argv[]) {
 					newargv[4 + j] = argv[j];
 				}
 				newargv[taille] = NULL;
-
-//				sleep(2); //petit sleep pour voir la syncro
-//				printf("<<<<<%i\n", getpid());
-				fflush(stdout);
-
-				//synchronisation pere fils
-				sync_child(pipe_father[i], pipe_child[i]);
-
+//
+////				sleep(2); //petit sleep pour voir la syncro
+////				printf("<<<<<%i\n", getpid());
+//				fflush(stdout);
+//
+//				//synchronisation pere fils
+//				sync_child(pipe_father[i], pipe_child[i]);
+//
 //				printf("<<<<<<<<<<<<<<<<%i\n", getpid());
-				fflush(stdout);
-
-				/* jump to new prog : */
+//				fflush(stdout);
+//
+//				/* jump to new prog : */
 				execvp("ssh", newargv);
 //				execlp("ssh", "ssh", "-Y", "normande", "ls", "-a", NULL);
-//				execlp("ssh", "ssh", "montbeliarde", PATH_WRAP, "0", "normande", "ls", "-a", NULL);
-
-				printf("Une erreur dans le exec\n");
-				fflush(stdout);
+//				execlp("ssh", "ssh", "montbeliarde", PATH_WRAP, "0", "normande", "arg inutile", "ls", "-a", NULL);
+//
+//				printf("Une erreur dans le exec\n");
+//				fflush(stdout);
 
 			} else if (pid > 0) { /* pere */
 
@@ -222,23 +222,13 @@ int main(int argc, char *argv[]) {
 //				fflush(stdout);
 
 				//synchronisation pere fils
-				sync_father(pipe_father[i], pipe_child[i]);
+//				sync_father(pipe_father[i], pipe_child[i]);
 //				printf(">>>>>>>>>>>>>>>>>>\n");
 
 				/* fermeture des extremites des tubes non utiles */
 				close(pipe_out[i][1]);
 				close(pipe_err[i][1]);
 
-//				char buffer[BUFFER_SIZE];
-//				char buffer_err[BUFFER_SIZE];
-//				memset(buffer, 0, BUFFER_SIZE*sizeof(char));
-//				memset(buffer_err, 0, BUFFER_SIZE*sizeof(char));
-//				while (read(pipe_out[i][0], buffer, sizeof(buffer)) != 0) {
-//				}
-//				while (read(pipe_err[i][0], buffer_err, sizeof(buffer_err)) != 0) {
-//				}
-//				printf(buffer);
-//				printf(buffer_err);
 				num_procs_creat++;
 			}
 		}
@@ -250,13 +240,9 @@ int main(int argc, char *argv[]) {
 			while ((new_sd = accept(lst_sock, NULL, NULL)) == -1) {
 				if (EINTR == errno) {
 					perror("recovering after system call interruption");
-				} else {
-					return strerror(errno);
 				}
 			}
 
-			printf("ok%i\n", new_sd);
-			fflush(stdout);
 			//initialisation du buffer
 			char * buffer_sock = (char *) malloc(BUFFER_SIZE * sizeof(char));
 			fflush(stdout);
@@ -275,19 +261,6 @@ int main(int argc, char *argv[]) {
 			printf("%s\n", liste_client[i].name);
 			printf("%i\n", liste_client[i].port_client);
 			printf("%i\n", liste_client[i].num_client);
-
-			//affiche les pipes
-//			char buffer[BUFFER_SIZE];
-//			char buffer_err[BUFFER_SIZE];
-//			memset(buffer, 0, BUFFER_SIZE * sizeof(char));
-//			memset(buffer_err, 0, BUFFER_SIZE * sizeof(char));
-//			while (read(pipe_out[i][0], buffer, sizeof(buffer)) != 0) {
-//			}
-//			while (read(pipe_err[i][0], buffer_err, sizeof(buffer_err)) != 0) {
-//			}
-//			printf(buffer);
-//			printf(buffer_err);
-
 		}
 
 		/* envoi du nombre de processus aux processus dsm*/
@@ -325,34 +298,33 @@ int main(int argc, char *argv[]) {
 		}
 
 		for (i = 0; i < num_procs; ++i) {
-			char buffer[BUFFER_SIZE];
-			char buffer_err[BUFFER_SIZE];
-			memset(buffer, 0, BUFFER_SIZE * sizeof(char));
-			memset(buffer_err, 0, BUFFER_SIZE * sizeof(char));
-			while (read(pipe_out[i][0], buffer, sizeof(buffer)) != 0) {
+			int tmp;
+			char test;
+			while ((tmp = read(pipe_out[i][0], &test, sizeof(char))) == 1) {
+				printf("%c", test);
 			}
-			while (read(pipe_err[i][0], buffer_err, sizeof(buffer_err)) != 0) {
+
+			while ((tmp = read(pipe_err[i][0], &test, sizeof(char))) == 1) {
+				printf("%c", test);
 			}
-			printf(buffer);
-			printf(buffer_err);
 		}
-
-		/* gestion des E/S : on recupere les caracteres */
-		/* sur les tubes de redirection de stdout/stderr */
-		/* while(1)
-		 {
-		 je recupere les infos sur les tubes de redirection
-		 jusqu'à ce qu'ils soient inactifs (ie fermes par les
-		 processus dsm ecrivains de l'autre cote ...)
-
-		 };
-		 */
-
-		/* on attend les processus fils */
-
-		/* on ferme les descripteurs proprement */
-
-		/* on ferme la socket d'ecoute */
+//
+//		/* gestion des E/S : on recupere les caracteres */
+//		/* sur les tubes de redirection de stdout/stderr */
+//		/* while(1)
+//		 {
+//		 je recupere les infos sur les tubes de redirection
+//		 jusqu'à ce qu'ils soient inactifs (ie fermes par les
+//		 processus dsm ecrivains de l'autre cote ...)
+//
+//		 };
+//		 */
+//
+//		/* on attend les processus fils */
+//
+//		/* on ferme les descripteurs proprement */
+//
+//		/* on ferme la socket d'ecoute */
 	}
 	exit(EXIT_SUCCESS);
 }
