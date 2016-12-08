@@ -199,3 +199,24 @@ char * str_extract(char * str, char * p1, char * p2){
     return res;
 }
 
+int deserialize(char * serialized, Client * liste_client, int * taille) {
+	int i;
+	char * tmp_seria = serialized;
+	char * actual_proc_str = str_extract(tmp_seria, "<actual_proc>", "</actual_proc>");
+	int actual_proc=atoi(actual_proc_str);
+	char * num_proc = str_extract(tmp_seria, "<num_proc>", "</num_proc>");
+	*taille=atoi(num_proc);
+	for (i = 0; i < *taille; ++i) {
+		char * machine = str_extract(tmp_seria, "<machine>", "</machine>");
+
+		char * name = str_extract(machine, "<name>", "</name>");
+		char * port = str_extract(machine, "<port>", "</port>");
+		char * rank = str_extract(machine, "<rank>", "</rank>");
+
+		liste_client[i].name = name;
+		liste_client[i].port_client = atoi(port);
+		liste_client[i].num_client = atoi(rank);
+		tmp_seria = strstr(tmp_seria, "</machine>"); //on repointe a une machine d'apres
+	}
+	return actual_proc;
+}
