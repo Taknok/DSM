@@ -35,8 +35,6 @@ int main(int argc, char **argv) {
 	/* creation d'une socket pour se connecter au */
 	/* au lanceur et envoyer/recevoir les infos */
 	/* necessaires pour la phase dsm_init */
-
-
 	struct sockaddr_in sock_host;
 	int sock;
 
@@ -45,7 +43,7 @@ int main(int argc, char **argv) {
 
 	//get address info from the server
 	char* serv_ip = get_ip(argv[2]);
-//	printf("###%s\n", serv_ip);
+	//printf("###%s\n", serv_ip);
 
 	//get port
 	int serv_port = atoi(argv[1]);
@@ -78,7 +76,6 @@ int main(int argc, char **argv) {
 	sprintf(buffer, "%s<port>%i</port>", buffer, port);
 
 	/* ENVOIE */
-
 	do_write(sock, buffer);
 
 	/* ECOUTE */
@@ -113,7 +110,9 @@ int main(int argc, char **argv) {
 //
 //	do_read(buffer_sock, sock_recv);
 //	printf("%s\n",buffer_sock);
-//	fflush(stdout);
+
+	fflush(stdout);
+
 	/* on execute la bonne commande */
 	execvp(argv[4], &argv[4]);
 	return 0;

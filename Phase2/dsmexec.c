@@ -229,16 +229,6 @@ int main(int argc, char *argv[]) {
 				close(pipe_out[i][1]);
 				close(pipe_err[i][1]);
 
-//				char buffer[BUFFER_SIZE];
-//				char buffer_err[BUFFER_SIZE];
-//				memset(buffer, 0, BUFFER_SIZE*sizeof(char));
-//				memset(buffer_err, 0, BUFFER_SIZE*sizeof(char));
-//				while (read(pipe_out[i][0], buffer, sizeof(buffer)) != 0) {
-//				}
-//				while (read(pipe_err[i][0], buffer_err, sizeof(buffer_err)) != 0) {
-//				}
-//				printf(buffer);
-//				printf(buffer_err);
 				num_procs_creat++;
 			}
 		}
@@ -249,7 +239,7 @@ int main(int argc, char *argv[]) {
 			int new_sd = 0;
 			while ((new_sd = accept(lst_sock, NULL, NULL)) == -1) {
 				if (EINTR == errno) {
-					perror("recovering after system call interruption");
+					perror("erreur connexion");
 				} else {
 					return strerror(errno);
 				}
@@ -276,18 +266,6 @@ int main(int argc, char *argv[]) {
 			printf("%i\n", liste_client[i].port_client);
 			printf("%i\n", liste_client[i].num_client);
 
-			//affiche les pipes
-//			char buffer[BUFFER_SIZE];
-//			char buffer_err[BUFFER_SIZE];
-//			memset(buffer, 0, BUFFER_SIZE * sizeof(char));
-//			memset(buffer_err, 0, BUFFER_SIZE * sizeof(char));
-//			while (read(pipe_out[i][0], buffer, sizeof(buffer)) != 0) {
-//			}
-//			while (read(pipe_err[i][0], buffer_err, sizeof(buffer_err)) != 0) {
-//			}
-//			printf(buffer);
-//			printf(buffer_err);
-
 		}
 
 		/* envoi du nombre de processus aux processus dsm*/
@@ -312,18 +290,30 @@ int main(int argc, char *argv[]) {
 			//get the socket
 			sock = do_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 			//connect to remote socket
-//			sock_host = do_connect(sock, sock_host, client_ip, client_port);
-//			char num_client_str[BUFFER_SIZE];
-//			sprintf(num_client_str, "<actual_proc>%i</actual_proc>",
-//					liste_client[i].num_client);
-//			strcat(send, num_client_str);
-//			strcat(send, liste_serialized);
-//
-//			do_write(sock, send);
+			sock_host = do_connect(sock, sock_host, client_ip, client_port);
+			char num_client_str[BUFFER_SIZE];
+			sprintf(num_client_str, "<actual_proc>%i</actual_proc>",
+					liste_client[i].num_client);
+			strcat(send, num_client_str);
+			strcat(send, liste_serialized);
+
+
+			do_write(sock, send);
 
 			close(sock);
 		}
 
+
+		/* gestion des E/S : on recupere les caracteres */
+			/* sur les tubes de redirection de stdout/stderr */
+			/* while(1)
+			 {
+			 je recupere les infos sur les tubes de redirection
+			 jusqu'à ce qu'ils soient inactifs (ie fermes par les
+			 processus dsm ecrivains de l'autre cote ...)
+
+			 };
+			 */
 		for (i = 0; i < num_procs; ++i) {
 			char buffer[BUFFER_SIZE];
 			char buffer_err[BUFFER_SIZE];
@@ -337,16 +327,7 @@ int main(int argc, char *argv[]) {
 			printf(buffer_err);
 		}
 
-		/* gestion des E/S : on recupere les caracteres */
-		/* sur les tubes de redirection de stdout/stderr */
-		/* while(1)
-		 {
-		 je recupere les infos sur les tubes de redirection
-		 jusqu'à ce qu'ils soient inactifs (ie fermes par les
-		 processus dsm ecrivains de l'autre cote ...)
 
-		 };
-		 */
 
 		/* on attend les processus fils */
 

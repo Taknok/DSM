@@ -12,9 +12,9 @@ int deserialize(char * serialized, Client * liste_client, int * taille) {
 	int actual_proc=atoi(actual_proc_str);
 	char * num_proc = str_extract(tmp_seria, "<num_proc>", "</num_proc>");
 	*taille=atoi(num_proc);
+
 	for (i = 0; i < *taille; ++i) {
 		char * machine = str_extract(tmp_seria, "<machine>", "</machine>");
-
 		char * name = str_extract(machine, "<name>", "</name>");
 		char * port = str_extract(machine, "<port>", "</port>");
 		char * rank = str_extract(machine, "<rank>", "</rank>");
