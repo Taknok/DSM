@@ -91,6 +91,7 @@ local.properties
 
 
 # Pour le CMAKE
+Phase2/Makefile
 CMakeCache.txt
 CMakeFiles
 CMakeScripts
