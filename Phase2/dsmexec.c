@@ -7,8 +7,8 @@
 int DSM_NODE_NUM = 0;
 int ARG_MAX_SIZE = 100;
 
-char * PATH_WRAP = "~/C/DSM/Phase2/bin/dsmwrap";
-//char * PATH_WRAP = "~/personnel/C/Semestre_7/DSM/Phase2/bin/dsmwrap";
+//char * PATH_WRAP = "~/C/DSM/Phase2/bin/dsmwrap";
+char * PATH_WRAP = "~/personnel/C/Semestre_7/DSM/Phase2/bin/dsmwrap";
 
 /* un tableau gerant les infos d'identification */
 /* des processus dsm */
@@ -283,18 +283,21 @@ int main(int argc, char *argv[]) {
 			client_ip = get_ip(liste_client[i].name);
 
 			client_port = liste_client[i].port_client;
+
+
 			//get the socket
-//			sock = do_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-//			//connect to remote socket
-//			sock_host = do_connect(sock, sock_host, client_ip, client_port);
-//			char num_client_str[BUFFER_SIZE];
-//			sprintf(num_client_str, "<actual_proc>%i</actual_proc>",
-//					liste_client[i].num_client);
-//			strcat(send, num_client_str);
-//			strcat(send, liste_serialized);
-//
-//
-//			do_write(sock, send);
+			sock = do_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+			//connect to remote socket
+			sock_host = do_connect(sock, sock_host, client_ip, client_port);
+			char num_client_str[BUFFER_SIZE];
+			sprintf(num_client_str, "<actual_proc>%i</actual_proc>",
+					liste_client[i].num_client);
+			strcat(send, num_client_str);
+			strcat(send, liste_serialized);
+
+
+			do_write(sock, send);
+
 
 			close(sock);
 		}

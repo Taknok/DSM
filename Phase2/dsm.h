@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <sys/mman.h>
+#include <sys/ioctl.h> //pour compter la taille de l'envoie
 
 /* fin des includes */
 

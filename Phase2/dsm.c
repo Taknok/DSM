@@ -136,25 +136,40 @@ char *dsm_init(int argc, char **argv)
    struct sigaction act;
    int index;
 
+
    /* ECOUTE */
    	int sock_recv = 0;
-   	int nb_procs = atoi(argv[3]);
    	int lst_sock=4; // car le descripteur de lst_sock dans wrap vaut 4;
 
    	sock_recv = accept(lst_sock, NULL, NULL);
-   	//initialisation du buffer
-   	char * buffer_sock = (char *) malloc(
-   	BUFFER_SIZE * 3 * nb_procs * sizeof(char)); //3 car 3 valeurs dans un proc
 
-   	int retour_client = do_read(buffer_sock, sock_recv);
-   	printf("%s\n",buffer_sock);
+   	//On regarde la taille de l'envoie (pour le malloc)
+   	int count;
+   	ioctl(sock_recv,FIONREAD,&count);
+
+    // récup de toute la chaine de caractère
+   	char * buffer_sock=(char *) malloc(count * sizeof(char));  //3 car 3 valeurs dans un proc
+   	int retour_client=do_read(buffer_sock,sock_recv);
+
+    /* reception du nombre de processus dsm envoye */
+      /* par le lanceur de programmes (DSM_NODE_NUM)*/
+   	char * num_proc = str_extract(buffer_sock, "<num_proc>", "</num_proc>");
+    int nb_procs=atoi(num_proc);
+
+    printf("<<<<<<<<<<<<<<<< %s \n", buffer_sock);
+    fflush(stdout);
+
+
    	Client liste_client[nb_procs];
    	int i;
-
-   	printf("lst sock: %i\n",lst_sock);
-
    	int num_procs;
+    /* reception de mon numero de processus dsm envoye */
+    /* par le lanceur de programmes (DSM_NODE_ID)*/
+   	/* reception des informations de connexion des autres */
+   	/* processus envoyees par le lanceur : */
+   	/* nom de machine, numero de port, etc. */
    	int actual_proc=deserialize(buffer_sock, liste_client, &num_procs);
+
 //   	printf("%i\n",actual_proc);
 //   	printf("%i\n", num_procs);
 //
@@ -165,22 +180,14 @@ char *dsm_init(int argc, char **argv)
 //
 //   	}
 
-   	memset(buffer_sock,0,BUFFER_SIZE * 3 * nb_procs * sizeof(char));
 
-   	do_read(buffer_sock, sock_recv);
-   	printf("%s\n",buffer_sock);
-   	fflush(stdout);
 
    
-   /* reception du nombre de processus dsm envoye */
-   /* par le lanceur de programmes (DSM_NODE_NUM)*/
+
+
+
    
-   /* reception de mon numero de processus dsm envoye */
-   /* par le lanceur de programmes (DSM_NODE_ID)*/
    
-   /* reception des informations de connexion des autres */
-   /* processus envoyees par le lanceur : */
-   /* nom de machine, numero de port, etc. */
    
    /* initialisation des connexions */ 
    /* avec les autres processus : connect/accept */
