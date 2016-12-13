@@ -144,6 +144,7 @@ char *dsm_init(int argc, char **argv)
    	sock_recv = accept(lst_sock, NULL, NULL);
 
    	//On regarde la taille de l'envoie (pour le malloc)
+   	sleep(1); //pas très propre mais si on ne le met pas, possibilité de compter la taille avant que le send soit terminé donc chaine trop petite au final
    	int count;
    	ioctl(sock_recv,FIONREAD,&count);
 
@@ -162,13 +163,12 @@ char *dsm_init(int argc, char **argv)
 
    	Client liste_client[nb_procs];
    	int i;
-   	int num_procs;
     /* reception de mon numero de processus dsm envoye */
     /* par le lanceur de programmes (DSM_NODE_ID)*/
    	/* reception des informations de connexion des autres */
    	/* processus envoyees par le lanceur : */
    	/* nom de machine, numero de port, etc. */
-   	int actual_proc=deserialize(buffer_sock, liste_client, &num_procs);
+   	int actual_proc=deserialize(buffer_sock, liste_client, nb_procs);
 
 //   	printf("%i\n",actual_proc);
 //   	printf("%i\n", num_procs);
@@ -179,19 +179,30 @@ char *dsm_init(int argc, char **argv)
 //   		printf("%i\n", liste_client[i].num_client);
 //
 //   	}
-
-
-
-   
-
-
-
-   
-   
    
    /* initialisation des connexions */ 
    /* avec les autres processus : connect/accept */
+   	int nbr_proc_accept=0;
+   	while(nbr_proc_accept<actual_proc){
+   		liste_client[nbr_proc_accept].sock_twin=accept(lst_sock, NULL, NULL);
+   		nbr_proc_accept++;
+   	}
+
    
+   	int sock;
+   	struct sockaddr_in sock_host;
+   	int to_connect=nb_procs;
+   	while(to_connect-1>actual_proc){
+   		sock = do_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+   		liste_client[to_connect-1].sock_twin=sock;
+   		char * ip= get_ip(liste_client[to_connect-1].name);
+   		int client_port=liste_client[to_connect-1].port_client;
+   		sock_host = do_connect(sock, sock_host,ip  , client_port );
+   		to_connect--;
+   	}
+
+
+
    /* Allocation des pages en tourniquet */
    for(index = 0; index < PAGE_NUMBER; index ++){	
      if ((index % DSM_NODE_NUM) == DSM_NODE_ID)

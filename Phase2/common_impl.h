@@ -51,6 +51,7 @@ typedef struct client_t{
 	char * name;
 	int port_client;
 	int num_client;
+	int sock_twin;
 	 //pour plus tard
 }Client;
 
@@ -103,4 +104,4 @@ void sync_father(int * pipe_father, int * pipe_child);
 //-------------------------------------------------------------------------------------------------
 char * str_extract(char * str, char * p1, char *p2);
 
-int deserialize(char * serialized, Client * liste_client, int * taille);
+int deserialize(char * serialized, Client * liste_client, int nb_procs);
