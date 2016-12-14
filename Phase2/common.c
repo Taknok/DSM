@@ -212,7 +212,7 @@ int deserialize(char * serialized, Client * liste_client, int nb_procs) {
 		char * port = str_extract(machine, "<port>", "</port>");
 		char * rank = str_extract(machine, "<rank>", "</rank>");
 
-		liste_client[i].name = name;
+		strcpy(liste_client[i].name, name);
 		liste_client[i].port_client = atoi(port);
 		liste_client[i].num_client = atoi(rank);
 		tmp_seria = strstr(tmp_seria, "</machine>"); //on repointe a une machine d'apres

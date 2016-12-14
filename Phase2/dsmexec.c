@@ -254,13 +254,14 @@ int main(int argc, char *argv[]) {
 			/* d'ecoute des processus distants */
 			char * client_port = str_extract(buffer_sock, "<port>", "</port>");
 
-			liste_client[i].name = client_name;
+			strcpy(liste_client[i].name, client_name);
 			liste_client[i].port_client = atoi(client_port);
 			close(new_sd);
 
 			printf("%s\n", liste_client[i].name);
 			printf("%i\n", liste_client[i].port_client);
 			printf("%i\n", liste_client[i].num_client);
+
 
 		}
 
@@ -271,6 +272,7 @@ int main(int argc, char *argv[]) {
 		char send[num_procs * BUFFER_SIZE * sizeof(char) * 3
 				+ BUFFER_SIZE * sizeof(char)];
 		serialize(liste_client, num_procs, liste_serialized);
+
 		for (i = 0; i < num_procs; ++i) {
 			struct sockaddr_in sock_host;
 			int sock;
@@ -288,6 +290,7 @@ int main(int argc, char *argv[]) {
 			//get the socket
 			sock = do_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 			//connect to remote socket
+
 			sock_host = do_connect(sock, sock_host, client_ip, client_port);
 			char num_client_str[BUFFER_SIZE];
 			sprintf(num_client_str, "<actual_proc>%i</actual_proc>",
@@ -313,6 +316,7 @@ int main(int argc, char *argv[]) {
 
 			 };
 			 */
+		sleep(2);
 		for (i = 0; i < num_procs; ++i) {
 			int tmp;
 			char test;
