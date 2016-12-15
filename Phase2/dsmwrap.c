@@ -2,7 +2,7 @@
 
 int main(int argc, char **argv) {
 
-	fprintf(stdout, "============== \n");
+	fprintf(stdout, "========================= \n");
 	fflush(stdout);
 
 	if (argc < 5) {
@@ -96,7 +96,6 @@ int main(int argc, char **argv) {
 //	memset(buffer_sock,0,BUFFER_SIZE * 3 * nb_procs * sizeof(char));
 //
 //	do_read(buffer_sock, sock_recv);
-//	printf("%s\n",buffer_sock);
 
 	fflush(stdout);
 

@@ -72,30 +72,106 @@ static void dsm_free_page(int numpage) {
 	return;
 }
 
+static void traitement_page(char * buffer, int sock) {
+	char * mini_buf = malloc(BUFFER_SIZE * sizeof(char));
+	do_read(mini_buf, sock);
+
+	char * id_str = str_extract(mini_buf, "<idsender>","</idsender>");
+	int idsender = atoi(id_str);
+
+	char * numpage_str = str_extract(mini_buf, "<numpage>","</numpage>");
+	int numpage = atoi(numpage_str);
+
+	dsm_alloc_page(numpage);
+	void * pointeur_debut_page = num2address(numpage);
+	strcpy(pointeur_debut_page, buffer);
+
+}
+
+static void traitement_demande_page(int id, int numpage) {
+	char * pointeur_debut_page = num2address(numpage);
+
+	void * buffer_page = malloc(PAGE_SIZE);
+	snprintf(buffer_page, PAGE_SIZE, pointeur_debut_page);
+
+	int sent = dsm_send(liste_client[id].sock_twin, buffer_page, PAGE_SIZE);
+
+	if (sent != PAGE_SIZE) {
+		fprintf(stderr, "echec de l'envoie de la page : %i sur %i\n", sent,
+		PAGE_SIZE);
+		fflush(stderr);
+	} else {
+		dsm_free_page(numpage);
+		char *  mini_buf = malloc(BUFFER_SIZE* sizeof(char));
+		sprintf(mini_buf, "<idsender>%i</idsender><numpage>%i</numpage>", id, numpage);
+		do_write(liste_client[id].sock_twin, mini_buf);
+		free(mini_buf);
+	}
+
+}
+
 static void *dsm_comm_daemon(void *arg) {
-	int lst_sock = 4;
-	while (1) {
-		/* a modifier */
-		// poll ou select ici ?
+	struct pollfd fds[DSM_NODE_NUM];
+	memset(fds, 0, sizeof(fds));
+	int num_fds = 0;
+	/*Ajout du out et err au poll*/
+	int j = 0;
+	for (j = 0; j < DSM_NODE_NUM; j++) {
+		fds[j].fd = liste_client[j].sock_twin;
+		fds[j].events = POLLIN;
+		num_fds++;
+	}
 
-		char * buffer_sock = (char *) malloc(PAGE_SIZE * sizeof(char));
-		int retour_client = do_read(buffer_sock, lst_sock);
+	for (;;) {
 
+		//initialisation de la structure pollfd
+		/* + ecoute effective */
 
-		char * id = str_extract(buffer_sock, "<id>", "</id>");
-		// Si on reçoit juste \0 donc il y a pas eu de match str_extract donc c'est pas une demande de page donc c'est un envoie de page
-		if (strcmp(id,"\0")){
-			//traitement d'une page
+		if (!poll(fds, num_fds, -1)) {
+			perror("  problème sur le poll() ");
+			break;
 		}
-		else {
-			//traitement demande d'une page'
-		}
 
+		int z = 0;
+		for (z = 0; z < DSM_NODE_NUM; z++) {
+			if (fds[z].revents == 0) { //si ya aucun evenement on passe au suivant
+				continue;
+			}
+
+//			int tmp;
+//			char test;
+//			while ((tmp = read(fds[z].fd, &test, sizeof(char))) == 1) {
+//				printf("%c", test);
+//			}
+
+			char * buffer_sock = (char *) malloc(PAGE_SIZE * sizeof(char));
+			int retour_client = do_read(buffer_sock, fds[z].fd);
+			memset(buffer_sock, 0, PAGE_SIZE); //on s'assure d'avoir des valeurs nulles dans le buff
+			int length_r_buff = recv(fds[z].fd, buffer_sock, PAGE_SIZE, 0);
+			if (length_r_buff < 0) {
+				printf("erreur rien n'a été recu\n");
+				perror("error read thread ");
+			}
+
+			char * id_str = str_extract(buffer_sock, "<id>", "</id>");
+			int id = atoi(id_str);
+
+			char * numpage_str = str_extract(buffer_sock, "<numpage>",
+					"</numpage>");
+			int numpage = atoi(numpage_str);
+
+			// Si on reçoit juste \0 donc il y a pas eu de match str_extract donc c'est pas une demande de page donc c'est un envoie de page
+			if (strcmp(id_str, "\0")) {
+				traitement_page(buffer_sock, fds[z].fd);
+			} else {
+				traitement_demande_page(id, numpage);
+			}
+
+		}
 
 //		printf("[%i] Waiting for incoming reqs \n", DSM_NODE_ID);
 //		sleep(2);
 	}
-//   return;
 }
 
 static int dsm_send(int dest, void *buf, size_t size) {
@@ -110,6 +186,7 @@ static int dsm_send(int dest, void *buf, size_t size) {
 			nbytes -= sent;
 		}
 	}
+	return sent;
 }
 
 static int dsm_recv(int from, void *buf, size_t size) {
@@ -176,7 +253,7 @@ char *dsm_init(int argc, char **argv) {
 	int sock_recv = 0;
 	int lst_sock = 4; // car le descripteur de lst_sock dans wrap vaut 4;
 
-	sock_recv = accept(lst_sock, NULL, NULL);
+	sock_recv = accept(lst_sock, NULL, NULL); //accpete le proc pere
 
 	//On regarde la taille de l'envoie (pour le malloc)
 	sleep(1); //pas très propre mais si on ne le met pas, possibilité de compter la taille avant que le send soit terminé donc chaine trop petite au final
@@ -188,13 +265,13 @@ char *dsm_init(int argc, char **argv) {
 	int retour_client = do_read(buffer_sock, sock_recv);
 
 	/* reception du nombre de processus dsm envoye */
-	/* par le lanceur de programmes (DSM_NODE_NUM)*/
+	/* par le lanceur de pr	printf("bonnn");ogrammes (DSM_NODE_NUM)*/
 	char * num_proc = str_extract(buffer_sock, "<num_proc>", "</num_proc>");
 	int nb_procs = atoi(num_proc);
 	DSM_NODE_NUM = nb_procs;
 
-	printf("<<<<<<<<<<<<<<<< %s \n", buffer_sock);
-	fflush(stdout);
+//	printf("<<<<<<<<<<<<<<<< %s \n", buffer_sock);
+//	fflush(stdout);
 
 	liste_client = malloc(nb_procs * sizeof(*liste_client));
 	int i;
@@ -206,8 +283,8 @@ char *dsm_init(int argc, char **argv) {
 	int actual_proc = deserialize(buffer_sock, liste_client, nb_procs);
 	DSM_NODE_ID = actual_proc;
 
-//   	printf("%i\n",actual_proc);
-//   	printf("%i\n", num_procs);
+//   	printf("########%i\n",actual_proc);
+////   	printf("%i\n", num_procs);
 //
 //   	for (i = 0; i < nb_procs; ++i) {
 //   		printf("%s\n", liste_client[i].name);
@@ -215,6 +292,7 @@ char *dsm_init(int argc, char **argv) {
 //   		printf("%i\n", liste_client[i].num_client);
 //
 //   	}
+	fflush(stdout);
 
 	/* initialisation des connexions */
 	/* avec les autres processus : connect/accept */
@@ -222,6 +300,11 @@ char *dsm_init(int argc, char **argv) {
 	while (nbr_proc_accept < actual_proc) {
 		liste_client[nbr_proc_accept].sock_twin = accept(lst_sock, NULL,
 		NULL);
+		printf("%i: %s a accepté : %i %s\n", actual_proc,
+				liste_client[actual_proc].name,
+				liste_client[nbr_proc_accept].sock_twin,
+				liste_client[nbr_proc_accept].name);
+		fflush(stdout);
 		nbr_proc_accept++;
 	}
 
@@ -234,6 +317,11 @@ char *dsm_init(int argc, char **argv) {
 		char * ip = get_ip(liste_client[to_connect - 1].name);
 		int client_port = liste_client[to_connect - 1].port_client;
 		sock_host = do_connect(sock, sock_host, ip, client_port);
+		printf("%i: %s a connecté : %i %s\n", actual_proc,
+				liste_client[actual_proc].name,
+				liste_client[to_connect - 1].sock_twin,
+				liste_client[to_connect - 1].name);
+		fflush(stdout);
 		to_connect--;
 	}
 

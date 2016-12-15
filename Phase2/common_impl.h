@@ -104,4 +104,6 @@ void sync_father(int * pipe_father, int * pipe_child);
 //-------------------------------------------------------------------------------------------------
 char * str_extract(char * str, char * p1, char *p2);
 
+void serialize(Client * client, int taille_tab, char * buffer);
+
 int deserialize(char * serialized, Client * liste_client, int nb_procs);

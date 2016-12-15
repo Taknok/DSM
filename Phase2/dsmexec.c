@@ -50,19 +50,7 @@ int count_line(FILE * FP) {
 	return nb_line;
 }
 
-void serialize(Client * client, int taille_tab, char * buffer) {
-//	char * buffer = malloc(taille_tab * sizeof(Client)*sizeof(char));
 
-	int i = 0;
-	sprintf(buffer, "%s<num_proc>%i</num_proc>", buffer, taille_tab);
-	for (i = 0; i < taille_tab; ++i) {
-		sprintf(buffer, "%s<machine>", buffer);
-		sprintf(buffer, "%s<name>%s</name>", buffer, client[i].name);
-		sprintf(buffer, "%s<port>%i</port>", buffer, client[i].port_client);
-		sprintf(buffer, "%s<rank>%i</rank>", buffer, client[i].num_client);
-		sprintf(buffer, "%s</machine>", buffer);
-	}
-}
 
 int main(int argc, char *argv[]) {
 	if (argc < 3) {
@@ -176,7 +164,7 @@ int main(int argc, char *argv[]) {
 				char dsm_num_str[ARG_MAX_SIZE];
 				sprintf(port_str, "%i", port);
 				char cwd[ARG_MAX_SIZE];
-				if (getcwd(cwd, sizeof(cwd)) == NULL){
+				if (getcwd(cwd, sizeof(cwd)) == NULL) {
 					perror("getcwd() error");
 				}
 
@@ -262,7 +250,6 @@ int main(int argc, char *argv[]) {
 			printf("%i\n", liste_client[i].port_client);
 			printf("%i\n", liste_client[i].num_client);
 
-
 		}
 
 		/* envoi du nombre de processus aux processus dsm*/
@@ -286,7 +273,6 @@ int main(int argc, char *argv[]) {
 
 			client_port = liste_client[i].port_client;
 
-
 			//get the socket
 			sock = do_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 			//connect to remote socket
@@ -298,36 +284,84 @@ int main(int argc, char *argv[]) {
 			strcat(send, num_client_str);
 			strcat(send, liste_serialized);
 
-
 			do_write(sock, send);
-
 
 			close(sock);
 		}
 
-
 		/* gestion des E/S : on recupere les caracteres */
-			/* sur les tubes de redirection de stdout/stderr */
-			/* while(1)
-			 {
-			 je recupere les infos sur les tubes de redirection
-			 jusqu'à ce qu'ils soient inactifs (ie fermes par les
-			 processus dsm ecrivains de l'autre cote ...)
+		/* sur les tubes de redirection de stdout/stderr */
+		/* while(1)
+		 {
+		 je recupere les infos sur les tubes de redirection
+		 jusqu'à ce qu'ils soient inactifs (ie fermes par les
+		 processus dsm ecrivains de l'autre cote ...)
 
-			 };
-			 */
+		 };
+		 */
+
 		sleep(2);
-		for (i = 0; i < num_procs; ++i) {
-			int tmp;
-			char test;
-			while ((tmp = read(pipe_out[i][0], &test, sizeof(char))) == 1) {
-				printf("%c", test);
+
+		struct pollfd fds[2*num_procs_creat];
+		memset(fds, 0, sizeof(fds));
+		int num_fds = 0;
+		/*Ajout du out et err au poll*/
+		int j = 0;
+		for (j = 0; j < num_procs; j++) {
+			fds[2*j].fd = pipe_out[j][0];
+			fds[2*j].events = POLLIN;
+			num_fds++;
+
+			fds[2*j+1].fd = pipe_err[j][0];
+			fds[2*j+1].events = POLLIN;
+			num_fds++;
+		}
+
+		for (;;) {
+
+			//initialisation de la structure pollfd
+			/* + ecoute effective */
+
+			if (!poll(fds, num_fds, -1)) {
+				perror("  problème sur le poll() ");
+				break;
 			}
 
-			while ((tmp = read(pipe_err[i][0], &test, sizeof(char))) == 1) {
-				printf("%c", test);
+			int z = 0;
+			for (z = 0; z < 2*num_fds; z++) {
+				if (fds[z].revents == 0) { //si ya aucun evenement on passe au suivant
+					continue;
+				}
+
+//				if (fds[z].revents != POLLIN) { //en cas d'evenement chelou
+//					perror("error lecture pipe ");
+//					break;
+//				}
+
+				int tmp;
+				char test;
+				while ((tmp = read(fds[z].fd, &test, sizeof(char))) == 1) {
+					printf("%c", test);
+				}
+
+//				while ((tmp = read(pipe_err[z][0], &test, sizeof(char))) == 1) {
+//					printf("%c", test);
+//				}
+
 			}
 		}
+
+//			for (i = 0; i < num_procs; ++i) {
+//				int tmp;
+//				char test;
+//				while ((tmp = read(pipe_out[i][0], &test, sizeof(char))) == 1) {
+//					printf("%c", test);
+//				}
+//
+//				while ((tmp = read(pipe_err[i][0], &test, sizeof(char))) == 1) {
+//					printf("%c", test);
+//				}
+//			}
 
 //
 //		/* gestion des E/S : on recupere les caracteres */

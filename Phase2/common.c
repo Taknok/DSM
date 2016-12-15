@@ -145,6 +145,7 @@ int do_read(char * buffer, int lst_sock) {
 
 	if (length_r_buff < 0) {
 		printf("erreur rien n'a été recu\n");
+		perror("error read ");
 	} else {
 		buffer[length_r_buff] = '\0';
 	}
@@ -161,8 +162,13 @@ struct sockaddr_in do_connect(int sock, struct sockaddr_in sock_host, char* host
 
     //check de l'erreur
     while(connect(sock, (struct sockaddr *) &sock_host, sizeof(sock_host)) == -1) {
-        perror("erreur connect");
+//        perror("erreur connect");
+//        char name[1024];
+//        gethostname(name, 1023);
 //        printf("%s , %i\n", hostname, port);
+
+        fflush(stdout);
+        fflush(stderr);
     }
     return sock_host;
 }
@@ -199,6 +205,20 @@ char * str_extract(char * str, char * p1, char * p2){
     return res;
 }
 
+void serialize(Client * client, int taille_tab, char * buffer) {
+//	char * buffer = malloc(taille_tab * sizeof(Client)*sizeof(char));
+
+	int i = 0;
+	sprintf(buffer, "%s<num_proc>%i</num_proc>", buffer, taille_tab);
+	for (i = 0; i < taille_tab; ++i) {
+		sprintf(buffer, "%s<machine>", buffer);
+		sprintf(buffer, "%s<name>%s</name>", buffer, client[i].name);
+		sprintf(buffer, "%s<port>%i</port>", buffer, client[i].port_client);
+		sprintf(buffer, "%s<rank>%i</rank>", buffer, client[i].num_client);
+		sprintf(buffer, "%s</machine>", buffer);
+	}
+}
+
 int deserialize(char * serialized, Client * liste_client, int nb_procs) {
 	int i;
 	char * tmp_seria = serialized;
@@ -215,7 +235,7 @@ int deserialize(char * serialized, Client * liste_client, int nb_procs) {
 		strcpy(liste_client[i].name, name);
 		liste_client[i].port_client = atoi(port);
 		liste_client[i].num_client = atoi(rank);
-		tmp_seria = strstr(tmp_seria, "</machine>"); //on repointe a une machine d'apres
+		tmp_seria = strstr(tmp_seria, "</machine>")+10; //on repointe a une machine d'apres
 	}
 	return actual_proc;
 }
