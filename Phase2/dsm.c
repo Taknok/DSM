@@ -86,7 +86,6 @@ static void traitement_page(char * buffer, int sock) {
 	dsm_alloc_page(numpage);
 	void * pointeur_debut_page = num2address(numpage);
 	strcpy(pointeur_debut_page, buffer);
-
 }
 
 static int dsm_send(int dest, void *buf, size_t size) {
@@ -206,12 +205,18 @@ static int dsm_recv(int from, void *buf, size_t size) {
 
 static void dsm_handler(int numpage) {
 	/* A modifier */
+
 	dsm_page_owner_t owner = get_owner(numpage);
 	int sock = liste_client[owner].sock_twin;
 	char * buffer_send = malloc(BUFFER_SIZE * sizeof(char));
-	sprintf(buffer_send, "<id>%s</id><numpage>%i</numpage>", DSM_NODE_ID,
-			numpage);
+	printf("*****************************\n");
+			fflush(stdout);
+	snprintf(buffer_send, BUFFER_SIZE, "<id>%s</id><numpage>%i</numpage>", DSM_NODE_ID, numpage);
+	printf("*****************************\n");
+			fflush(stdout);
 	do_write(sock, buffer_send); //demande de la page
+
+	free(buffer_send);
 
 //		printf("[%i] FAULTY  ACCESS !!! \n", DSM_NODE_ID);
 //		abort();
@@ -237,14 +242,18 @@ static void segv_handler(int sig, siginfo_t *info, void *context) {
 	 dsm_access_t access  = (((ucontext_t *)context)->uc_mcontext.gregs[REG_ERR] & 2) ? WRITE_ACCESS : READ_ACCESS;
 	 */
 	/* adresse de la page dont fait partie l'adresse qui a provoque la faute */
+
+//	printf("*****************************\n");
+//	fflush(stdout);
 	void *page_addr = (void *) (((unsigned long) addr) & ~(PAGE_SIZE - 1));
 
 	if ((addr >= (void *) BASE_ADDR) && (addr < (void *) TOP_ADDR)) {
 		int numpage = address2num(page_addr);
 		dsm_handler(numpage);
-
 		sem_wait(&sem);
 	} else {
+//		printf("*****************************\n");
+//		fflush(stdout);
 		/* SIGSEGV normal : ne rien faire*/
 	}
 }
@@ -346,7 +355,7 @@ char *dsm_init(int argc, char **argv) {
 	sigaction(SIGSEGV, &act, NULL);
 
 	//creation du semaphore
-	if (sem_init(&sem, 0,0) == -1){
+	if (sem_init(&sem, 0, 0) == -1) {
 		perror("Erreur creation semaphore : ");
 	}
 
@@ -367,7 +376,6 @@ void dsm_finalize(void) {
 //	}
 //
 //	close(4); //c'est la sock du dsm exe
-
 	/* terminer correctement le thread de communication */
 	/* pour le moment, on peut faire : */
 	pthread_cancel(comm_daemon);

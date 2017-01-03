@@ -150,11 +150,11 @@ int main(int argc, char *argv[]) {
 
 				/* redirection stdout */
 				close(pipe_out[i][0]);
-				dup2(pipe_out[i][1], STDOUT_FILENO);
+//				dup2(pipe_out[i][1], STDOUT_FILENO);
 
 				/* redirection stderr */
 				close(pipe_err[i][0]);
-				dup2(pipe_err[i][1], STDERR_FILENO);
+//				dup2(pipe_err[i][1], STDERR_FILENO);
 
 				/* Creation du tableau d'arguments pour le ssh */
 				//cast du port et ip en chaine de caractères
