@@ -45,3 +45,10 @@ SET(SRC_TEST
 
 add_executable(test ${SRC_TEST} ${SRC_COMMONS})
 target_link_libraries (test ${CMAKE_THREAD_LIBS_INIT})
+
+SET(SRC_EXEMPLE
+	exemple.c
+)
+
+add_executable(exemple ${SRC_EXEMPLE} ${SRC_COMMONS})
+target_link_libraries (exemple ${CMAKE_THREAD_LIBS_INIT})

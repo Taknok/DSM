@@ -4,7 +4,8 @@
 int DSM_NODE_NUM; /* nombre de processus dsm */
 int DSM_NODE_ID; /* rang (= numero) du processus */
 
-Client * liste_client;
+Client * liste_client = NULL;
+sem_t sem;
 
 /* indique l'adresse de debut de la page de numero numpage */
 static char *num2address(int numpage) {
@@ -76,16 +77,31 @@ static void traitement_page(char * buffer, int sock) {
 	char * mini_buf = malloc(BUFFER_SIZE * sizeof(char));
 	do_read(mini_buf, sock);
 
-	char * id_str = str_extract(mini_buf, "<idsender>","</idsender>");
+	char * id_str = str_extract(mini_buf, "<idsender>", "</idsender>");
 	int idsender = atoi(id_str);
 
-	char * numpage_str = str_extract(mini_buf, "<numpage>","</numpage>");
+	char * numpage_str = str_extract(mini_buf, "<numpage>", "</numpage>");
 	int numpage = atoi(numpage_str);
 
 	dsm_alloc_page(numpage);
 	void * pointeur_debut_page = num2address(numpage);
 	strcpy(pointeur_debut_page, buffer);
 
+}
+
+static int dsm_send(int dest, void *buf, size_t size) {
+	/* a completer */
+	int offset = 0;
+	int nbytes = 0;
+	int sent = 0;
+	while ((sent = send(dest, buf + offset, size, 0)) > 0
+			|| (sent == -1 && errno == EINTR)) {
+		if (sent > 0) {
+			offset += sent;
+			nbytes -= sent;
+		}
+	}
+	return sent;
 }
 
 static void traitement_demande_page(int id, int numpage) {
@@ -102,12 +118,14 @@ static void traitement_demande_page(int id, int numpage) {
 		fflush(stderr);
 	} else {
 		dsm_free_page(numpage);
-		char *  mini_buf = malloc(BUFFER_SIZE* sizeof(char));
-		sprintf(mini_buf, "<idsender>%i</idsender><numpage>%i</numpage>", id, numpage);
+		char * mini_buf = malloc(BUFFER_SIZE * sizeof(char));
+		sprintf(mini_buf, "<idsender>%i</idsender><numpage>%i</numpage>", id,
+				numpage);
 		do_write(liste_client[id].sock_twin, mini_buf);
 		free(mini_buf);
 	}
 
+	free(buffer_page);
 }
 
 static void *dsm_comm_daemon(void *arg) {
@@ -145,11 +163,11 @@ static void *dsm_comm_daemon(void *arg) {
 //			}
 
 			char * buffer_sock = (char *) malloc(PAGE_SIZE * sizeof(char));
-			int retour_client = do_read(buffer_sock, fds[z].fd);
+//			int retour_client = do_read(buffer_sock, fds[z].fd);
 			memset(buffer_sock, 0, PAGE_SIZE); //on s'assure d'avoir des valeurs nulles dans le buff
 			int length_r_buff = recv(fds[z].fd, buffer_sock, PAGE_SIZE, 0);
 			if (length_r_buff < 0) {
-				printf("erreur rien n'a été recu\n");
+				printf("erreur rien n'a été recu deamon\n");
 				perror("error read thread ");
 			}
 
@@ -163,6 +181,7 @@ static void *dsm_comm_daemon(void *arg) {
 			// Si on reçoit juste \0 donc il y a pas eu de match str_extract donc c'est pas une demande de page donc c'est un envoie de page
 			if (strcmp(id_str, "\0")) {
 				traitement_page(buffer_sock, fds[z].fd);
+				sem_post(&sem);
 			} else {
 				traitement_demande_page(id, numpage);
 			}
@@ -174,28 +193,13 @@ static void *dsm_comm_daemon(void *arg) {
 	}
 }
 
-static int dsm_send(int dest, void *buf, size_t size) {
-	/* a completer */
-	int offset = 0;
-	int nbytes = 0;
-	int sent = 0;
-	while ((sent = send(dest, buf + offset, size, 0)) > 0
-			|| (sent == -1 && errno == EINTR)) {
-		if (sent > 0) {
-			offset += sent;
-			nbytes -= sent;
-		}
-	}
-	return sent;
-}
-
 static int dsm_recv(int from, void *buf, size_t size) {
 	/* a completer */
 	memset(buf, 0, size); //on s'assure d'avoir des valeurs nulles dans le buff
 	int length_r_buff = recv(from, buf, size, 0);
 
 	if (length_r_buff < 0) {
-		printf("erreur rien n'a été recu\n");
+		printf("erreur rien n'a été recu lors reception page\n");
 	}
 	return length_r_buff;
 }
@@ -238,6 +242,8 @@ static void segv_handler(int sig, siginfo_t *info, void *context) {
 	if ((addr >= (void *) BASE_ADDR) && (addr < (void *) TOP_ADDR)) {
 		int numpage = address2num(page_addr);
 		dsm_handler(numpage);
+
+		sem_wait(&sem);
 	} else {
 		/* SIGSEGV normal : ne rien faire*/
 	}
@@ -296,6 +302,7 @@ char *dsm_init(int argc, char **argv) {
 
 	/* initialisation des connexions */
 	/* avec les autres processus : connect/accept */
+	/*acceptation*/
 	int nbr_proc_accept = 0;
 	while (nbr_proc_accept < actual_proc) {
 		liste_client[nbr_proc_accept].sock_twin = accept(lst_sock, NULL,
@@ -308,6 +315,7 @@ char *dsm_init(int argc, char **argv) {
 		nbr_proc_accept++;
 	}
 
+	/*connection*/
 	int sock;
 	struct sockaddr_in sock_host;
 	int to_connect = nb_procs;
@@ -337,6 +345,11 @@ char *dsm_init(int argc, char **argv) {
 	act.sa_sigaction = segv_handler;
 	sigaction(SIGSEGV, &act, NULL);
 
+	//creation du semaphore
+	if (sem_init(&sem, 0,0) == -1){
+		perror("Erreur creation semaphore : ");
+	}
+
 	/* creation du thread de communication */
 	/* ce thread va attendre et traiter les requetes */
 	/* des autres processus */
@@ -348,6 +361,12 @@ char *dsm_init(int argc, char **argv) {
 
 void dsm_finalize(void) {
 	/* fermer proprement les connexions avec les autres processus */
+//	int j = 0;
+//	for (j = 0; j < DSM_NODE_NUM; j++) {
+//		close(liste_client[j].sock_twin);
+//	}
+//
+//	close(4); //c'est la sock du dsm exe
 
 	/* terminer correctement le thread de communication */
 	/* pour le moment, on peut faire : */

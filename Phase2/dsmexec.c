@@ -7,8 +7,8 @@
 int DSM_NODE_NUM = 0;
 int ARG_MAX_SIZE = 100;
 
-//char * PATH_WRAP = "~/C/DSM/Phase2/bin/dsmwrap";
-char * PATH_WRAP = "~/personnel/C/Semestre_7/DSM/Phase2/bin/dsmwrap";
+char * PATH_WRAP = "~/C/DSM/Phase2/bin/dsmwrap";
+//char * PATH_WRAP = "~/personnel/C/Semestre_7/DSM/Phase2/bin/dsmwrap";
 
 /* un tableau gerant les infos d'identification */
 /* des processus dsm */
@@ -49,8 +49,6 @@ int count_line(FILE * FP) {
 	fseek(FP, 0, SEEK_SET);
 	return nb_line;
 }
-
-
 
 int main(int argc, char *argv[]) {
 	if (argc < 3) {
@@ -192,7 +190,7 @@ int main(int argc, char *argv[]) {
 //
 //				//synchronisation pere fils
 //				sync_child(pipe_father[i], pipe_child[i]);
-//
+//osses.pedago.ipb.fr
 //				printf("<<<<<<<<<<<<<<<<%i\n", getpid());
 //				fflush(stdout);
 //
@@ -302,18 +300,18 @@ int main(int argc, char *argv[]) {
 
 		sleep(2);
 
-		struct pollfd fds[2*num_procs_creat];
+		struct pollfd fds[2 * num_procs_creat];
 		memset(fds, 0, sizeof(fds));
 		int num_fds = 0;
 		/*Ajout du out et err au poll*/
 		int j = 0;
 		for (j = 0; j < num_procs; j++) {
-			fds[2*j].fd = pipe_out[j][0];
-			fds[2*j].events = POLLIN;
+			fds[2 * j].fd = pipe_out[j][0];
+			fds[2 * j].events = POLLIN;
 			num_fds++;
 
-			fds[2*j+1].fd = pipe_err[j][0];
-			fds[2*j+1].events = POLLIN;
+			fds[2 * j + 1].fd = pipe_err[j][0];
+			fds[2 * j + 1].events = POLLIN;
 			num_fds++;
 		}
 
@@ -328,7 +326,7 @@ int main(int argc, char *argv[]) {
 			}
 
 			int z = 0;
-			for (z = 0; z < 2*num_fds; z++) {
+			for (z = 0; z < 2 * num_fds; z++) {
 				if (fds[z].revents == 0) { //si ya aucun evenement on passe au suivant
 					continue;
 				}
@@ -344,37 +342,12 @@ int main(int argc, char *argv[]) {
 					printf("%c", test);
 				}
 
-//				while ((tmp = read(pipe_err[z][0], &test, sizeof(char))) == 1) {
-//					printf("%c", test);
-//				}
-
 			}
 		}
 
-//			for (i = 0; i < num_procs; ++i) {
-//				int tmp;
-//				char test;
-//				while ((tmp = read(pipe_out[i][0], &test, sizeof(char))) == 1) {
-//					printf("%c", test);
-//				}
-//
-//				while ((tmp = read(pipe_err[i][0], &test, sizeof(char))) == 1) {
-//					printf("%c", test);
-//				}
-//			}
 
-//
-//		/* gestion des E/S : on recupere les caracteres */
-//		/* sur les tubes de redirection de stdout/stderr */
-//		/* while(1)
-//		 {
-//		 je recupere les infos sur les tubes de redirection
-//		 jusqu'à ce qu'ils soient inactifs (ie fermes par les
-//		 processus dsm ecrivains de l'autre cote ...)
-//
-//		 };
-//		 */
-//
+
+
 //		/* on attend les processus fils */
 //
 //		/* on ferme les descripteurs proprement */
