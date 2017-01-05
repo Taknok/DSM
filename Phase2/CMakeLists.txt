@@ -52,3 +52,10 @@ SET(SRC_EXEMPLE
 
 add_executable(exemple ${SRC_EXEMPLE} ${SRC_COMMONS})
 target_link_libraries (exemple ${CMAKE_THREAD_LIBS_INIT})
+
+SET(SRC_TRUC
+	truc.c
+)
+
+add_executable(truc ${SRC_TRUC} ${SRC_COMMONS})
+target_link_libraries (truc ${CMAKE_THREAD_LIBS_INIT})

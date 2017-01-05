@@ -40,7 +40,8 @@ void do_write(int sockfd, char* text) {
 	int offset = 0;
 	int nbytes = 0;
 	int sent = 0;
-	while ((sent = send(sockfd, text + offset, strlen(text), 0)) > 0 || (sent == -1 && errno == EINTR) ) {
+	while ((sent = send(sockfd, text + offset, strlen(text), 0)) > 0
+			|| (sent == -1 && errno == EINTR)) {
 		if (sent > 0) {
 			offset += sent;
 			nbytes -= sent;
@@ -127,7 +128,7 @@ int get_port(int sock) {
 	if (getsockname(sock, (struct sockaddr *) &sin, &len) == -1) {
 		perror("getsockname");
 	} else {
-		port =  ntohs(sin.sin_port);
+		port = ntohs(sin.sin_port);
 	}
 	return port;
 }
@@ -141,7 +142,10 @@ char * get_ip(char * hostname) {
 
 int do_read(char * buffer, int lst_sock) {
 	memset(buffer, 0, BUFFER_SIZE); //on s'assure d'avoir des valeurs nulles dans le buff
-	int length_r_buff = recv(lst_sock, buffer, BUFFER_SIZE - 1, 0);
+	int length_r_buff;
+	do{
+		length_r_buff = recv(lst_sock, buffer, BUFFER_SIZE - 1, 0);
+	} while ((-1 == length_r_buff) && (errno == EINTR));
 
 	if (length_r_buff < 0) {
 		printf("erreur rien n'a été recu\n");
@@ -152,25 +156,22 @@ int do_read(char * buffer, int lst_sock) {
 	return length_r_buff;
 }
 
-struct sockaddr_in do_connect(int sock, struct sockaddr_in sock_host, char* hostname, int port){
-    //reinitialise la memoire
-    memset(&sock_host, 0, sizeof(sock_host));
+struct sockaddr_in do_connect(int sock, struct sockaddr_in sock_host,
+		char* hostname, int port) {
+	//reinitialise la memoire
+	memset(&sock_host, 0, sizeof(sock_host));
 
-    sock_host.sin_family = AF_INET;
-    inet_aton(hostname, &sock_host.sin_addr);
-    sock_host.sin_port = htons(port);
+	sock_host.sin_family = AF_INET;
+	inet_aton(hostname, &sock_host.sin_addr);
+	sock_host.sin_port = htons(port);
 
-    //check de l'erreur
-    while(connect(sock, (struct sockaddr *) &sock_host, sizeof(sock_host)) == -1) {
-//        perror("erreur connect");
-//        char name[1024];
-//        gethostname(name, 1023);
-//        printf("%s , %i\n", hostname, port);
+	//check de l'erreur
+	int retour;
+	do{
+		retour = connect(sock, (struct sockaddr *) &sock_host, sizeof(sock_host));
+	}while ((-1 == retour) && (errno == EINTR));
 
-        fflush(stdout);
-        fflush(stderr);
-    }
-    return sock_host;
+	return sock_host;
 }
 
 //-----------------------------------------------------------------------------------------------------------------
@@ -194,15 +195,19 @@ void sync_father(int * pipe_father, int * pipe_child) {
 }
 
 //-----------------------------------------------------------------------------------------------------------------
-char * str_extract(char * str, char * p1, char * p2){
+char * str_extract(char * str, char * p1, char * p2) {
+
+	if(strlen(str) <= 0){
+		return "-1";
+	}
 
 	const char * match1 = strstr(str, p1) + strlen(p1);
-    const char * match2 = strstr(match1, p2);
-    size_t len = match2 - match1;
-    char * res = (char*)malloc(sizeof(char)*(len+1));
-    strncpy(res, match1, len);
-    res[len] = '\0';
-    return res;
+	const char * match2 = strstr(match1, p2);
+	size_t len = match2 - match1;
+	char * res = (char*) malloc(sizeof(char) * (len + 1));
+	strncpy(res, match1, len);
+	res[len] = '\0';
+	return res;
 }
 
 void serialize(Client * client, int taille_tab, char * buffer) {
@@ -222,8 +227,9 @@ void serialize(Client * client, int taille_tab, char * buffer) {
 int deserialize(char * serialized, Client * liste_client, int nb_procs) {
 	int i;
 	char * tmp_seria = serialized;
-	char * actual_proc_str = str_extract(tmp_seria, "<actual_proc>", "</actual_proc>");
-	int actual_proc=atoi(actual_proc_str);
+	char * actual_proc_str = str_extract(tmp_seria, "<actual_proc>",
+			"</actual_proc>");
+	int actual_proc = atoi(actual_proc_str);
 
 	for (i = 0; i < nb_procs; ++i) {
 		char * machine = str_extract(tmp_seria, "<machine>", "</machine>");
@@ -235,7 +241,7 @@ int deserialize(char * serialized, Client * liste_client, int nb_procs) {
 		strcpy(liste_client[i].name, name);
 		liste_client[i].port_client = atoi(port);
 		liste_client[i].num_client = atoi(rank);
-		tmp_seria = strstr(tmp_seria, "</machine>")+10; //on repointe a une machine d'apres
+		tmp_seria = strstr(tmp_seria, "</machine>") + 10; //on repointe a une machine d'apres
 	}
 	return actual_proc;
 }

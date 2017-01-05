@@ -73,19 +73,26 @@ static void dsm_free_page(int numpage) {
 	return;
 }
 
-static void traitement_page(char * buffer, int sock) {
-	char * mini_buf = malloc(BUFFER_SIZE * sizeof(char));
-	do_read(mini_buf, sock);
+static void reception_page(int numpage, int sock) {
+	char * buffer_recp = malloc(PAGE_SIZE * sizeof(char));
 
-	char * id_str = str_extract(mini_buf, "<idsender>", "</idsender>");
-	int idsender = atoi(id_str);
-
-	char * numpage_str = str_extract(mini_buf, "<numpage>", "</numpage>");
-	int numpage = atoi(numpage_str);
+	int retour;
+	do {
+		retour = recv(sock, buffer_recp, PAGE_SIZE, MSG_WAITALL);
+	} while ((-1 == retour) && (errno == EINTR));
 
 	dsm_alloc_page(numpage);
+	dsm_change_info(numpage, WRITE, DSM_NODE_ID);
 	void * pointeur_debut_page = num2address(numpage);
-	strcpy(pointeur_debut_page, buffer);
+	memcpy(pointeur_debut_page, buffer_recp, PAGE_SIZE);
+
+	printf("recp %i : '%s' - %i\n", DSM_NODE_ID, buffer_recp, retour);
+	fflush(stdout);
+
+	free(buffer_recp);
+
+	printf("J'ai map alléluia ! \n");
+	fflush(stdout);
 }
 
 static int dsm_send(int dest, void *buf, size_t size) {
@@ -103,31 +110,42 @@ static int dsm_send(int dest, void *buf, size_t size) {
 	return sent;
 }
 
-static void traitement_demande_page(int id, int numpage) {
+static void envoie_page(int id, int numpage) {
 	char * pointeur_debut_page = num2address(numpage);
 
-	void * buffer_page = malloc(PAGE_SIZE);
-	snprintf(buffer_page, PAGE_SIZE, pointeur_debut_page);
+	char * mini_buf = malloc(BUFFER_SIZE * sizeof(char));
+	sprintf(mini_buf, "<numpage>%i</numpage>", id, numpage); //pour update de la liste des pages et owner
+	int retour;
+	do{
+		retour = send(liste_client[id].sock_twin, mini_buf, BUFFER_SIZE, 0);
+	}while ((-1 == retour) && (errno == EINTR));
 
-	int sent = dsm_send(liste_client[id].sock_twin, buffer_page, PAGE_SIZE);
+	do {
+		retour = recv(liste_client[id].sock_twin, mini_buf, BUFFER_SIZE, 0);
+	} while ((-1 == retour) && (errno == EINTR));
 
-	if (sent != PAGE_SIZE) {
+	free(mini_buf);
+
+	int sent;
+	do{
+		sent = send(liste_client[id].sock_twin, pointeur_debut_page, PAGE_SIZE,0);
+	}while ((-1 == sent) && (errno == EINTR));
+
+	printf(">>>>>>>>>>send %i\n", sent);
+	fflush(stdout);
+	if (sent == -1) {
 		fprintf(stderr, "echec de l'envoie de la page : %i sur %i\n", sent,
 		PAGE_SIZE);
 		fflush(stderr);
 	} else {
 		dsm_free_page(numpage);
-		char * mini_buf = malloc(BUFFER_SIZE * sizeof(char));
-		sprintf(mini_buf, "<idsender>%i</idsender><numpage>%i</numpage>", id,
-				numpage);
-		do_write(liste_client[id].sock_twin, mini_buf);
-		free(mini_buf);
 	}
-
-	free(buffer_page);
 }
 
 static void *dsm_comm_daemon(void *arg) {
+	printf("begin thread %i\n", DSM_NODE_ID);
+	fflush(stdout);
+
 	struct pollfd fds[DSM_NODE_NUM];
 	memset(fds, 0, sizeof(fds));
 	int num_fds = 0;
@@ -135,6 +153,8 @@ static void *dsm_comm_daemon(void *arg) {
 	int j = 0;
 	for (j = 0; j < DSM_NODE_NUM; j++) {
 		fds[j].fd = liste_client[j].sock_twin;
+//		printf("ssssssssssoccccccccccccckkkkkkk id %i  %i\n", DSM_NODE_ID,fds[j].fd);
+//		fflush(stdout);
 		fds[j].events = POLLIN;
 		num_fds++;
 	}
@@ -155,36 +175,53 @@ static void *dsm_comm_daemon(void *arg) {
 				continue;
 			}
 
-//			int tmp;
-//			char test;
-//			while ((tmp = read(fds[z].fd, &test, sizeof(char))) == 1) {
-//				printf("%c", test);
-//			}
-
 			char * buffer_sock = (char *) malloc(PAGE_SIZE * sizeof(char));
-//			int retour_client = do_read(buffer_sock, fds[z].fd);
+
+			sleep(0.1);
 			memset(buffer_sock, 0, PAGE_SIZE); //on s'assure d'avoir des valeurs nulles dans le buff
-			int length_r_buff = recv(fds[z].fd, buffer_sock, PAGE_SIZE, 0);
+			int length_r_buff;
+			do {
+				length_r_buff = recv(fds[z].fd, buffer_sock, PAGE_SIZE, 0);
+			}while ((-1 == length_r_buff) && (errno == EINTR));
 			if (length_r_buff < 0) {
 				printf("erreur rien n'a été recu deamon\n");
 				perror("error read thread ");
 			}
 
-			char * id_str = str_extract(buffer_sock, "<id>", "</id>");
-			int id = atoi(id_str);
+			printf("Thread %i recv on sock %i : '%s' - %i\n", DSM_NODE_ID,
+					fds[z].fd, buffer_sock, length_r_buff);
+			fflush(stdout);
 
-			char * numpage_str = str_extract(buffer_sock, "<numpage>",
-					"</numpage>");
-			int numpage = atoi(numpage_str);
+			if (25 < strlen(buffer_sock) && strlen(buffer_sock) < 40) {
+				char * id_str = str_extract(buffer_sock, "<id>", "</id>");
+				int id = atoi(id_str);
 
-			// Si on reçoit juste \0 donc il y a pas eu de match str_extract donc c'est pas une demande de page donc c'est un envoie de page
-			if (strcmp(id_str, "\0")) {
-				traitement_page(buffer_sock, fds[z].fd);
+				char * numpage_str = str_extract(buffer_sock, "<numpage>",
+						"</numpage>");
+				int numpage = atoi(numpage_str);
+
+				printf("debut envoie page %i  \n", DSM_NODE_ID);
+				fflush(stdout);
+
+				envoie_page(id, numpage);
+
+			} else if (strlen(buffer_sock) >= 3) { //pour eviter que le "ok" envoyé repasse ici
+				printf("debut reception page %i  \n", DSM_NODE_ID);
+				fflush(stdout);
+
+				char * numpage_str = str_extract(buffer_sock, "<numpage>",
+						"</numpage>");
+				int numpage = atoi(numpage_str);
+
+				int retour;
+				do{
+					retour = send(fds[z].fd, "ok", 3, 0); //message servant d'acquitement pour la reception de la page
+				}while ((-1 == retour) && (errno == EINTR));
+
+				reception_page(numpage, fds[z].fd);
 				sem_post(&sem);
-			} else {
-				traitement_demande_page(id, numpage);
 			}
-
+			free(buffer_sock);
 		}
 
 //		printf("[%i] Waiting for incoming reqs \n", DSM_NODE_ID);
@@ -195,7 +232,10 @@ static void *dsm_comm_daemon(void *arg) {
 static int dsm_recv(int from, void *buf, size_t size) {
 	/* a completer */
 	memset(buf, 0, size); //on s'assure d'avoir des valeurs nulles dans le buff
-	int length_r_buff = recv(from, buf, size, 0);
+	int length_r_buff;
+	do{
+		length_r_buff = recv(from, buf, size, 0);
+	}while ((-1 == length_r_buff) && (errno == EINTR));
 
 	if (length_r_buff < 0) {
 		printf("erreur rien n'a été recu lors reception page\n");
@@ -209,13 +249,21 @@ static void dsm_handler(int numpage) {
 	dsm_page_owner_t owner = get_owner(numpage);
 	int sock = liste_client[owner].sock_twin;
 	char * buffer_send = malloc(BUFFER_SIZE * sizeof(char));
-	printf("*****************************\n");
-			fflush(stdout);
-	snprintf(buffer_send, BUFFER_SIZE, "<id>%s</id><numpage>%i</numpage>", DSM_NODE_ID, numpage);
-	printf("*****************************\n");
-			fflush(stdout);
-	do_write(sock, buffer_send); //demande de la page
+	snprintf(buffer_send, BUFFER_SIZE, "<id>%i</id><numpage>%i</numpage>",
+			DSM_NODE_ID, numpage);
 
+//	printf("%i  mmmmmmmmmmmmm %i\n", DSM_NODE_ID, sock);
+//	fflush(stdout);
+
+	int retour;
+	do {
+		retour = send(sock, buffer_send, BUFFER_SIZE, 0); //demande de la page
+	}while ((-1 == retour) && (errno == EINTR));
+
+	if (retour == -1) {
+		perror("erreur send page request\n");
+		fflush(stderr);
+	}
 	free(buffer_send);
 
 //		printf("[%i] FAULTY  ACCESS !!! \n", DSM_NODE_ID);
@@ -243,17 +291,17 @@ static void segv_handler(int sig, siginfo_t *info, void *context) {
 	 */
 	/* adresse de la page dont fait partie l'adresse qui a provoque la faute */
 
-//	printf("*****************************\n");
-//	fflush(stdout);
 	void *page_addr = (void *) (((unsigned long) addr) & ~(PAGE_SIZE - 1));
 
 	if ((addr >= (void *) BASE_ADDR) && (addr < (void *) TOP_ADDR)) {
+		printf("%i ******* SEGFAULT DE PAGE %p\n", DSM_NODE_ID, addr);
+		fflush(stdout);
 		int numpage = address2num(page_addr);
 		dsm_handler(numpage);
 		sem_wait(&sem);
 	} else {
-//		printf("*****************************\n");
-//		fflush(stdout);
+		printf("%i ****** SEGFAULT normal boulet\n", DSM_NODE_ID);
+		fflush(stdout);
 		/* SIGSEGV normal : ne rien faire*/
 	}
 }
@@ -268,8 +316,9 @@ char *dsm_init(int argc, char **argv) {
 	int sock_recv = 0;
 	int lst_sock = 4; // car le descripteur de lst_sock dans wrap vaut 4;
 
-	sock_recv = accept(lst_sock, NULL, NULL); //accpete le proc pere
-
+	do {
+		sock_recv = accept(lst_sock, NULL, NULL); //accpete le proc pere
+	} while ((-1 == sock_recv) && (errno == EINTR));
 	//On regarde la taille de l'envoie (pour le malloc)
 	sleep(1); //pas très propre mais si on ne le met pas, possibilité de compter la taille avant que le send soit terminé donc chaine trop petite au final
 	int count;
@@ -296,6 +345,7 @@ char *dsm_init(int argc, char **argv) {
 	/* processus envoyees par le lanceur : */
 	/* nom de machine, numero de port, etc. */
 	int actual_proc = deserialize(buffer_sock, liste_client, nb_procs);
+	free(buffer_sock);
 	DSM_NODE_ID = actual_proc;
 
 //   	printf("########%i\n",actual_proc);
@@ -314,8 +364,11 @@ char *dsm_init(int argc, char **argv) {
 	/*acceptation*/
 	int nbr_proc_accept = 0;
 	while (nbr_proc_accept < actual_proc) {
-		liste_client[nbr_proc_accept].sock_twin = accept(lst_sock, NULL,
-		NULL);
+		do {
+			liste_client[nbr_proc_accept].sock_twin = accept(lst_sock, NULL,
+			NULL);
+		} while ((-1 == liste_client[nbr_proc_accept].sock_twin)
+				&& (errno == EINTR));
 		printf("%i: %s a accepté : %i %s\n", actual_proc,
 				liste_client[actual_proc].name,
 				liste_client[nbr_proc_accept].sock_twin,
@@ -341,6 +394,7 @@ char *dsm_init(int argc, char **argv) {
 		fflush(stdout);
 		to_connect--;
 	}
+	free(liste_client);
 
 	/* Allocation des pages en tourniquet */
 	for (index = 0; index < PAGE_NUMBER; index++) {
@@ -362,7 +416,16 @@ char *dsm_init(int argc, char **argv) {
 	/* creation du thread de communication */
 	/* ce thread va attendre et traiter les requetes */
 	/* des autres processus */
-	pthread_create(&comm_daemon, NULL, dsm_comm_daemon, NULL);
+
+	int retour = pthread_create(&comm_daemon, NULL, dsm_comm_daemon, NULL);
+	if (retour != 0) {
+		perror("erreur creation deamon");
+		fflush(stderr);
+	}
+
+	int toto = 0; // attente pour pouvoir lancer les threads
+	while (++toto)
+		;
 
 	/* Adresse de début de la zone de mémoire partagée */
 	return ((char *) BASE_ADDR);

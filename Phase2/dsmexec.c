@@ -7,8 +7,8 @@
 int DSM_NODE_NUM = 0;
 int ARG_MAX_SIZE = 100;
 
-char * PATH_WRAP = "~/C/DSM/Phase2/bin/dsmwrap";
-//char * PATH_WRAP = "~/personnel/C/Semestre_7/DSM/Phase2/bin/dsmwrap";
+//char * PATH_WRAP = "~/C/DSM/Phase2/bin/dsmwrap";
+char * PATH_WRAP = "~/personnel/C/Semestre_7/DSM/Phase2/bin/dsmwrap";
 
 /* un tableau gerant les infos d'identification */
 /* des processus dsm */
@@ -247,6 +247,7 @@ int main(int argc, char *argv[]) {
 			printf("%s\n", liste_client[i].name);
 			printf("%i\n", liste_client[i].port_client);
 			printf("%i\n", liste_client[i].num_client);
+			free(buffer_sock);
 
 		}
 

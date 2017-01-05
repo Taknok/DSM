@@ -28,6 +28,10 @@ int main(int argc, char **argv)
        printf("[%i] valeur de l'entier : %i\n", DSM_NODE_ID, value);
        fflush(stdout);
      }
+   int toto = 0;
+   while(++toto);
+   printf("fini ! %i\n", DSM_NODE_ID);
+   fflush(stdout);
 //   dsm_finalize();
    return 1;
 }
