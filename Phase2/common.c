@@ -57,6 +57,7 @@ void do_write(int sockfd, char* text) {
 int do_socket(int domain, int type, int protocol) {
 	int sockfd;
 	int yes = 1;
+	int option;
 	//create the socket
 	sockfd = socket(domain, type, protocol);
 
@@ -66,7 +67,7 @@ int do_socket(int domain, int type, int protocol) {
 	}
 
 	// set socket option, to prevent "already in use" issue when rebooting the server right on
-	int option = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,
+	option = setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &yes,
 			sizeof(int));
 
 	if (option == -1)
@@ -196,15 +197,21 @@ void sync_father(int * pipe_father, int * pipe_child) {
 
 //-----------------------------------------------------------------------------------------------------------------
 char * str_extract(char * str, char * p1, char * p2) {
+	char * match1;
+	char * match2;
+	size_t len;
+	char * res;
+
 
 	if(strlen(str) <= 0){
 		return "-1";
 	}
 
-	const char * match1 = strstr(str, p1) + strlen(p1);
-	const char * match2 = strstr(match1, p2);
-	size_t len = match2 - match1;
-	char * res = (char*) malloc(sizeof(char) * (len + 1));
+	match1 = strstr(str, p1) + strlen(p1);
+	match2 = strstr(match1, p2);
+	len = match2 - match1;
+	res = (char*) malloc(sizeof(char) * (len + 1));
+
 	strncpy(res, match1, len);
 	res[len] = '\0';
 	return res;
@@ -230,13 +237,16 @@ int deserialize(char * serialized, Client * liste_client, int nb_procs) {
 	char * actual_proc_str = str_extract(tmp_seria, "<actual_proc>",
 			"</actual_proc>");
 	int actual_proc = atoi(actual_proc_str);
+	char * machine;
+	char * name;
+	char * port;
+	char * rank;
 
 	for (i = 0; i < nb_procs; ++i) {
-		char * machine = str_extract(tmp_seria, "<machine>", "</machine>");
-
-		char * name = str_extract(machine, "<name>", "</name>");
-		char * port = str_extract(machine, "<port>", "</port>");
-		char * rank = str_extract(machine, "<rank>", "</rank>");
+		machine = str_extract(tmp_seria, "<machine>", "</machine>");
+		name = str_extract(machine, "<name>", "</name>");
+		port = str_extract(machine, "<port>", "</port>");
+		rank = str_extract(machine, "<rank>", "</rank>");
 
 		strcpy(liste_client[i].name, name);
 		liste_client[i].port_client = atoi(port);

@@ -75,15 +75,16 @@ static void dsm_free_page(int numpage) {
 
 static void reception_page(int numpage, int sock) {
 	char * buffer_recp = malloc(PAGE_SIZE * sizeof(char));
-
 	int retour;
+	void * pointeur_debut_page;
+
 	do {
 		retour = recv(sock, buffer_recp, PAGE_SIZE, MSG_WAITALL);
 	} while ((-1 == retour) && (errno == EINTR));
 
 	dsm_alloc_page(numpage);
 	dsm_change_info(numpage, WRITE, DSM_NODE_ID);
-	void * pointeur_debut_page = num2address(numpage);
+	pointeur_debut_page = num2address(numpage);
 	memcpy(pointeur_debut_page, buffer_recp, PAGE_SIZE);
 
 	printf("recp %i : '%s' - %i\n", DSM_NODE_ID, buffer_recp, retour);
@@ -100,6 +101,7 @@ static int dsm_send(int dest, void *buf, size_t size) {
 	int offset = 0;
 	int nbytes = 0;
 	int sent = 0;
+
 	while ((sent = send(dest, buf + offset, size, 0)) > 0
 			|| (sent == -1 && errno == EINTR)) {
 		if (sent > 0) {
@@ -112,10 +114,12 @@ static int dsm_send(int dest, void *buf, size_t size) {
 
 static void envoie_page(int id, int numpage) {
 	char * pointeur_debut_page = num2address(numpage);
-
 	char * mini_buf = malloc(BUFFER_SIZE * sizeof(char));
-	sprintf(mini_buf, "<numpage>%i</numpage>", id, numpage); //pour update de la liste des pages et owner
 	int retour;
+	int sent;
+
+	sprintf(mini_buf, "<numpage>%i</numpage>", id, numpage); //pour update de la liste des pages et owner
+
 	do{
 		retour = send(liste_client[id].sock_twin, mini_buf, BUFFER_SIZE, 0);
 	}while ((-1 == retour) && (errno == EINTR));
@@ -126,13 +130,14 @@ static void envoie_page(int id, int numpage) {
 
 	free(mini_buf);
 
-	int sent;
+
 	do{
 		sent = send(liste_client[id].sock_twin, pointeur_debut_page, PAGE_SIZE,0);
 	}while ((-1 == sent) && (errno == EINTR));
 
 	printf(">>>>>>>>>>send %i\n", sent);
 	fflush(stdout);
+
 	if (sent == -1) {
 		fprintf(stderr, "echec de l'envoie de la page : %i sur %i\n", sent,
 		PAGE_SIZE);
@@ -149,6 +154,9 @@ static void *dsm_comm_daemon(void *arg) {
 	struct pollfd fds[DSM_NODE_NUM];
 	memset(fds, 0, sizeof(fds));
 	int num_fds = 0;
+	char * buffer_sock;
+	int length_r_buff;
+
 	/*Ajout du out et err au poll*/
 	int j = 0;
 	for (j = 0; j < DSM_NODE_NUM; j++) {
@@ -175,14 +183,15 @@ static void *dsm_comm_daemon(void *arg) {
 				continue;
 			}
 
-			char * buffer_sock = (char *) malloc(PAGE_SIZE * sizeof(char));
+			buffer_sock = (char *) malloc(PAGE_SIZE * sizeof(char));
 
 			sleep(0.1);
 			memset(buffer_sock, 0, PAGE_SIZE); //on s'assure d'avoir des valeurs nulles dans le buff
-			int length_r_buff;
+
 			do {
 				length_r_buff = recv(fds[z].fd, buffer_sock, PAGE_SIZE, 0);
 			}while ((-1 == length_r_buff) && (errno == EINTR));
+
 			if (length_r_buff < 0) {
 				printf("erreur rien n'a été recu deamon\n");
 				perror("error read thread ");
@@ -231,8 +240,9 @@ static void *dsm_comm_daemon(void *arg) {
 
 static int dsm_recv(int from, void *buf, size_t size) {
 	/* a completer */
-	memset(buf, 0, size); //on s'assure d'avoir des valeurs nulles dans le buff
 	int length_r_buff;
+	memset(buf, 0, size); //on s'assure d'avoir des valeurs nulles dans le buff
+
 	do{
 		length_r_buff = recv(from, buf, size, 0);
 	}while ((-1 == length_r_buff) && (errno == EINTR));
@@ -248,14 +258,11 @@ static void dsm_handler(int numpage) {
 
 	dsm_page_owner_t owner = get_owner(numpage);
 	int sock = liste_client[owner].sock_twin;
+	int retour;
 	char * buffer_send = malloc(BUFFER_SIZE * sizeof(char));
 	snprintf(buffer_send, BUFFER_SIZE, "<id>%i</id><numpage>%i</numpage>",
 			DSM_NODE_ID, numpage);
 
-//	printf("%i  mmmmmmmmmmmmm %i\n", DSM_NODE_ID, sock);
-//	fflush(stdout);
-
-	int retour;
 	do {
 		retour = send(sock, buffer_send, BUFFER_SIZE, 0); //demande de la page
 	}while ((-1 == retour) && (errno == EINTR));
@@ -296,8 +303,11 @@ static void segv_handler(int sig, siginfo_t *info, void *context) {
 	if ((addr >= (void *) BASE_ADDR) && (addr < (void *) TOP_ADDR)) {
 		printf("%i ******* SEGFAULT DE PAGE %p\n", DSM_NODE_ID, addr);
 		fflush(stdout);
+
 		int numpage = address2num(page_addr);
+
 		dsm_handler(numpage);
+
 		sem_wait(&sem);
 	} else {
 		printf("%i ****** SEGFAULT normal boulet\n", DSM_NODE_ID);
@@ -315,36 +325,43 @@ char *dsm_init(int argc, char **argv) {
 	/* ECOUTE */
 	int sock_recv = 0;
 	int lst_sock = 4; // car le descripteur de lst_sock dans wrap vaut 4;
+	int count;
+	char * buffer_sock;
+	int retour_client;
+	char * num_proc;
+	int nb_procs;
+	int actual_proc;
 
 	do {
 		sock_recv = accept(lst_sock, NULL, NULL); //accpete le proc pere
 	} while ((-1 == sock_recv) && (errno == EINTR));
 	//On regarde la taille de l'envoie (pour le malloc)
 	sleep(1); //pas très propre mais si on ne le met pas, possibilité de compter la taille avant que le send soit terminé donc chaine trop petite au final
-	int count;
+
+
 	ioctl(sock_recv, FIONREAD, &count);
 
 	// récup de toute la chaine de caractère
-	char * buffer_sock = (char *) malloc(count * sizeof(char)); //3 car 3 valeurs dans un proc
-	int retour_client = do_read(buffer_sock, sock_recv);
+	buffer_sock = (char *) malloc(count * sizeof(char)); //3 car 3 valeurs dans un proc
+	retour_client = do_read(buffer_sock, sock_recv);
 
 	/* reception du nombre de processus dsm envoye */
 	/* par le lanceur de pr	printf("bonnn");ogrammes (DSM_NODE_NUM)*/
-	char * num_proc = str_extract(buffer_sock, "<num_proc>", "</num_proc>");
-	int nb_procs = atoi(num_proc);
+	num_proc = str_extract(buffer_sock, "<num_proc>", "</num_proc>");
+	nb_procs = atoi(num_proc);
 	DSM_NODE_NUM = nb_procs;
 
 //	printf("<<<<<<<<<<<<<<<< %s \n", buffer_sock);
 //	fflush(stdout);
 
 	liste_client = malloc(nb_procs * sizeof(*liste_client));
-	int i;
+//	int i;
 	/* reception de mon numero de processus dsm envoye */
 	/* par le lanceur de programmes (DSM_NODE_ID)*/
 	/* reception des informations de connexion des autres */
 	/* processus envoyees par le lanceur : */
 	/* nom de machine, numero de port, etc. */
-	int actual_proc = deserialize(buffer_sock, liste_client, nb_procs);
+	actual_proc = deserialize(buffer_sock, liste_client, nb_procs);
 	free(buffer_sock);
 	DSM_NODE_ID = actual_proc;
 
@@ -381,11 +398,14 @@ char *dsm_init(int argc, char **argv) {
 	int sock;
 	struct sockaddr_in sock_host;
 	int to_connect = nb_procs;
+	char * ip;
+	int client_port;
+
 	while (to_connect - 1 > actual_proc) {
 		sock = do_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		liste_client[to_connect - 1].sock_twin = sock;
-		char * ip = get_ip(liste_client[to_connect - 1].name);
-		int client_port = liste_client[to_connect - 1].port_client;
+		ip = get_ip(liste_client[to_connect - 1].name);
+		client_port = liste_client[to_connect - 1].port_client;
 		sock_host = do_connect(sock, sock_host, ip, client_port);
 		printf("%i: %s a connecté : %i %s\n", actual_proc,
 				liste_client[actual_proc].name,
