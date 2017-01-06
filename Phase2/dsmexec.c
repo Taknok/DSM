@@ -71,14 +71,16 @@ int main(int argc, char *argv[]) {
 			exit(-1);
 		}
 
+		//compatge des lignes du fichier machine_file
 		DSM_NODE_NUM = count_line(FP);
 
 		/* 2- on recupere les noms des machines : le nom de */
 		/* la machine est un des elements d'identification */
 		dsm_proc_t tab_dsm_proc[DSM_NODE_NUM];
-		init_tab_dsm_proc(tab_dsm_proc, DSM_NODE_NUM);
 		struct client_t liste_client[DSM_NODE_NUM];
+		init_tab_dsm_proc(tab_dsm_proc, DSM_NODE_NUM);
 
+		//informations des clients dans les structures
 		int i = 0;
 		int r;
 		size_t len = 0;
@@ -102,7 +104,7 @@ int main(int argc, char *argv[]) {
 		/* creation #include <poll.h>
 		 * de la socket d'ecoute */
 		struct sockaddr_in serv_addr;
-
+		//initialisation de la socket d'écoute
 		int lst_sock = do_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 		init_serv_addr(0, &serv_addr);
 		do_bind(lst_sock, serv_addr);
@@ -142,19 +144,19 @@ int main(int argc, char *argv[]) {
 					close(pipe_out[k][1]);
 					close(pipe_err[k][0]);
 					close(pipe_err[k][1]);
-//					close(pipe_father[k][0]);
-//					close(pipe_father[k][1]);
-//					close(pipe_child[k][0]);
-//					close(pipe_child[k][1]);
+					close(pipe_father[k][0]);
+					close(pipe_father[k][1]);
+					close(pipe_child[k][0]);
+					close(pipe_child[k][1]);
 				}
 
 				/* redirection stdout */
 				close(pipe_out[i][0]);
-//				dup2(pipe_out[i][1], STDOUT_FILENO);
+				dup2(pipe_out[i][1], STDOUT_FILENO);
 
 				/* redirection stderr */
 				close(pipe_err[i][0]);
-//				dup2(pipe_err[i][1], STDERR_FILENO);
+				dup2(pipe_err[i][1], STDERR_FILENO);
 
 				/* Creation du tableau d'arguments pour le ssh */
 				//cast du port et ip en chaine de caractères
@@ -162,7 +164,7 @@ int main(int argc, char *argv[]) {
 				char dsm_num_str[ARG_MAX_SIZE];
 				sprintf(port_str, "%i", port);
 				char cwd[ARG_MAX_SIZE];
-				if (getcwd(cwd, sizeof(cwd)) == NULL) {
+				if (getcwd(cwd, sizeof(cwd)) == NULL) { //name of current directory
 					perror("getcwd() error");
 				}
 
@@ -183,22 +185,12 @@ int main(int argc, char *argv[]) {
 					newargv[4 + j] = argv[j];
 				}
 				newargv[taille] = NULL;
-//
-////				sleep(2); //petit sleep pour voir la syncro
-////				printf("<<<<<%i\n", getpid());
-//				fflush(stdout);
-//
-//				//synchronisation pere fils
-//				sync_child(pipe_father[i], pipe_child[i]);
-//osses.pedago.ipb.fr
-//				printf("<<<<<<<<<<<<<<<<%i\n", getpid());
-//				fflush(stdout);
+
 //
 //				/* jump to new prog : */
 				execvp("ssh", newargv);
 //				execlp("ssh", "ssh", "-Y", "normande", "ls", "-a", NULL);
 //				execlp("ssh", "ssh", "montbeliarde", PATH_WRAP, "0", "normande", "arg inutile", "ls", "-a", NULL);
-//
 //				printf("Une erreur dans le exec\n");
 //				fflush(stdout);
 
@@ -207,9 +199,6 @@ int main(int argc, char *argv[]) {
 //				printf(">>>>>>%i\n", pid);
 //				fflush(stdout);
 
-				//synchronisation pere fils
-//				sync_father(pipe_father[i], pipe_child[i]);
-//				printf(">>>>>>>>>>>>>>>>>>\n");
 
 				/* fermeture des extremites des tubes non utiles */
 				close(pipe_out[i][1]);
@@ -221,7 +210,7 @@ int main(int argc, char *argv[]) {
 
 		for (i = 0; i < num_procs; i++) {
 
-			/* on accepte les connexions des processus dsm */
+			/* on accepte les connexions des processus fils dsm */
 			int new_sd = 0;
 			while ((new_sd = accept(lst_sock, NULL, NULL)) == -1) {
 				if (EINTR == errno) {
@@ -233,6 +222,7 @@ int main(int argc, char *argv[]) {
 			char * buffer_sock = (char *) malloc(BUFFER_SIZE * sizeof(char));
 			fflush(stdout);
 
+			//lecture
 			int retour_client = do_read(buffer_sock, new_sd);
 			/*  On recupere le nom de la machine distante */
 			char * client_name = str_extract(buffer_sock, "<name>", "</name>");
@@ -240,13 +230,14 @@ int main(int argc, char *argv[]) {
 			/* d'ecoute des processus distants */
 			char * client_port = str_extract(buffer_sock, "<port>", "</port>");
 
+			//copie des infos dans les structures
 			strcpy(liste_client[i].name, client_name);
 			liste_client[i].port_client = atoi(client_port);
 			close(new_sd);
 
-			printf("%s\n", liste_client[i].name);
-			printf("%i\n", liste_client[i].port_client);
-			printf("%i\n", liste_client[i].num_client);
+//			printf("%s\n", liste_client[i].name);
+//			printf("%i\n", liste_client[i].port_client);
+//			printf("%i\n", liste_client[i].num_client);
 			free(buffer_sock);
 
 		}
@@ -269,20 +260,18 @@ int main(int argc, char *argv[]) {
 					num_procs * BUFFER_SIZE * sizeof(char) * 3
 							+ BUFFER_SIZE * sizeof(char));
 			client_ip = get_ip(liste_client[i].name);
-
 			client_port = liste_client[i].port_client;
 
 			//get the socket
 			sock = do_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 			//connect to remote socket
-
 			sock_host = do_connect(sock, sock_host, client_ip, client_port);
 			char num_client_str[BUFFER_SIZE];
 			sprintf(num_client_str, "<actual_proc>%i</actual_proc>",
 					liste_client[i].num_client);
 			strcat(send, num_client_str);
 			strcat(send, liste_serialized);
-
+			//envoie effectif
 			do_write(sock, send);
 
 			close(sock);
@@ -332,13 +321,11 @@ int main(int argc, char *argv[]) {
 					continue;
 				}
 
-//				if (fds[z].revents != POLLIN) { //en cas d'evenement chelou
-//					perror("error lecture pipe ");
-//					break;
-//				}
-
 				int tmp;
 				char test;
+
+
+				//affichage effectif
 				while ((tmp = read(fds[z].fd, &test, sizeof(char))) == 1) {
 					printf("%c", test);
 				}
