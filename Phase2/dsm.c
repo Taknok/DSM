@@ -30,8 +30,7 @@ static int address2num(void * pageaddr) {
 }
 
 /* fonctions pouvant etre utiles */
-static void dsm_change_info(int numpage, dsm_page_state_t state,
-		dsm_page_owner_t owner) {
+static void dsm_change_info(int numpage, dsm_page_state_t state, dsm_page_owner_t owner) {
 	if ((numpage >= 0) && (numpage < PAGE_NUMBER)) {
 		if (state != NO_CHANGE)
 			table_page[numpage].status = state;
@@ -102,8 +101,7 @@ static int dsm_send(int dest, void *buf, size_t size) {
 	int nbytes = 0;
 	int sent = 0;
 
-	while ((sent = send(dest, buf + offset, size, 0)) > 0
-			|| (sent == -1 && errno == EINTR)) {
+	while ((sent = send(dest, buf + offset, size, 0)) > 0 || (sent == -1 && errno == EINTR)) {
 		if (sent > 0) {
 			offset += sent;
 			nbytes -= sent;
@@ -118,7 +116,7 @@ static void envoie_page(int id, int numpage) {
 	int retour;
 	int sent;
 
-	sprintf(mini_buf, "<numpage>%i</numpage>", id, numpage); //pour update de la liste des pages et owner
+	sprintf(mini_buf, "<numpage>%i</numpage>", numpage); //pour update de la liste des pages
 
 	do{
 		retour = send(liste_client[id].sock_twin, mini_buf, BUFFER_SIZE, 0);
@@ -144,6 +142,7 @@ static void envoie_page(int id, int numpage) {
 		fflush(stderr);
 	} else {
 		dsm_free_page(numpage);
+		dsm_change_info(numpage, NO_ACCESS, id);
 	}
 }
 
@@ -156,9 +155,10 @@ static void *dsm_comm_daemon(void *arg) {
 	int num_fds = 0;
 	char * buffer_sock;
 	int length_r_buff;
+	int j = 0;
+	int z = 0;
 
 	/*Ajout du out et err au poll*/
-	int j = 0;
 	for (j = 0; j < DSM_NODE_NUM; j++) {
 		fds[j].fd = liste_client[j].sock_twin;
 //		printf("ssssssssssoccccccccccccckkkkkkk id %i  %i\n", DSM_NODE_ID,fds[j].fd);
@@ -177,7 +177,7 @@ static void *dsm_comm_daemon(void *arg) {
 			break;
 		}
 
-		int z = 0;
+
 		for (z = 0; z < DSM_NODE_NUM; z++) {
 			if (fds[z].revents == 0) { //si ya aucun evenement on passe au suivant
 				continue;
@@ -197,32 +197,29 @@ static void *dsm_comm_daemon(void *arg) {
 				perror("error read thread ");
 			}
 
-			printf("Thread %i recv on sock %i : '%s' - %i\n", DSM_NODE_ID,
-					fds[z].fd, buffer_sock, length_r_buff);
+			printf("Thread %i recv on sock %i : '%s' - %i\n", DSM_NODE_ID, fds[z].fd, buffer_sock, length_r_buff);
 			fflush(stdout);
 
-			if (25 < strlen(buffer_sock) && strlen(buffer_sock) < 40) {
+			if (25 < strlen(buffer_sock) && strlen(buffer_sock) < 40) { //envoie de la page
 				char * id_str = str_extract(buffer_sock, "<id>", "</id>");
 				int id = atoi(id_str);
-
-				char * numpage_str = str_extract(buffer_sock, "<numpage>",
-						"</numpage>");
+				char * numpage_str = str_extract(buffer_sock, "<numpage>", "</numpage>");
 				int numpage = atoi(numpage_str);
 
-				printf("debut envoie page %i  \n", DSM_NODE_ID);
+				printf("%i debut envoie page %i\n", DSM_NODE_ID, numpage);
 				fflush(stdout);
 
 				envoie_page(id, numpage);
 
 			} else if (strlen(buffer_sock) >= 3) { //pour eviter que le "ok" envoyé repasse ici
-				printf("debut reception page %i  \n", DSM_NODE_ID);
+				//reception d'une page
+				char * numpage_str = str_extract(buffer_sock, "<numpage>", "</numpage>");
+				int numpage = atoi(numpage_str);
+				int retour;
+
+				printf("%i debut reception page %i\n", DSM_NODE_ID, numpage);
 				fflush(stdout);
 
-				char * numpage_str = str_extract(buffer_sock, "<numpage>",
-						"</numpage>");
-				int numpage = atoi(numpage_str);
-
-				int retour;
 				do{
 					retour = send(fds[z].fd, "ok", 3, 0); //message servant d'acquitement pour la reception de la page
 				}while ((-1 == retour) && (errno == EINTR));
@@ -254,8 +251,6 @@ static int dsm_recv(int from, void *buf, size_t size) {
 }
 
 static void dsm_handler(int numpage) {
-	/* A modifier */
-
 	dsm_page_owner_t owner = get_owner(numpage);
 	int sock = liste_client[owner].sock_twin;
 	int retour;
@@ -280,6 +275,8 @@ static void dsm_handler(int numpage) {
 /* traitant de signal adequat */
 static void segv_handler(int sig, siginfo_t *info, void *context) {
 	/* A completer */
+	int numpage;
+
 	/* adresse qui a provoque une erreur */
 	void *addr = info->si_addr;
 	/* Si ceci ne fonctionne pas, utiliser a la place :*/
@@ -304,7 +301,7 @@ static void segv_handler(int sig, siginfo_t *info, void *context) {
 		printf("%i ******* SEGFAULT DE PAGE %p\n", DSM_NODE_ID, addr);
 		fflush(stdout);
 
-		int numpage = address2num(page_addr);
+		numpage = address2num(page_addr);
 
 		dsm_handler(numpage);
 
@@ -331,6 +328,7 @@ char *dsm_init(int argc, char **argv) {
 	char * num_proc;
 	int nb_procs;
 	int actual_proc;
+	int nbr_proc_accept = 0;
 
 	do {
 		sock_recv = accept(lst_sock, NULL, NULL); //accpete le proc pere
@@ -379,18 +377,19 @@ char *dsm_init(int argc, char **argv) {
 	/* initialisation des connexions */
 	/* avec les autres processus : connect/accept */
 	/*acceptation*/
-	int nbr_proc_accept = 0;
 	while (nbr_proc_accept < actual_proc) {
+
 		do {
-			liste_client[nbr_proc_accept].sock_twin = accept(lst_sock, NULL,
-			NULL);
-		} while ((-1 == liste_client[nbr_proc_accept].sock_twin)
-				&& (errno == EINTR));
+			liste_client[nbr_proc_accept].sock_twin = accept(lst_sock, NULL, NULL);
+		} while ((-1 == liste_client[nbr_proc_accept].sock_twin) && (errno == EINTR));
+
+
 		printf("%i: %s a accepté : %i %s\n", actual_proc,
 				liste_client[actual_proc].name,
 				liste_client[nbr_proc_accept].sock_twin,
 				liste_client[nbr_proc_accept].name);
 		fflush(stdout);
+
 		nbr_proc_accept++;
 	}
 
@@ -433,6 +432,11 @@ char *dsm_init(int argc, char **argv) {
 		perror("Erreur creation semaphore : ");
 	}
 
+
+
+
+
+
 	/* creation du thread de communication */
 	/* ce thread va attendre et traiter les requetes */
 	/* des autres processus */
@@ -444,8 +448,7 @@ char *dsm_init(int argc, char **argv) {
 	}
 
 	int toto = 0; // attente pour pouvoir lancer les threads
-	while (++toto)
-		;
+	while (++toto);
 
 	/* Adresse de début de la zone de mémoire partagée */
 	return ((char *) BASE_ADDR);
@@ -453,12 +456,12 @@ char *dsm_init(int argc, char **argv) {
 
 void dsm_finalize(void) {
 	/* fermer proprement les connexions avec les autres processus */
-//	int j = 0;
-//	for (j = 0; j < DSM_NODE_NUM; j++) {
-//		close(liste_client[j].sock_twin);
-//	}
-//
-//	close(4); //c'est la sock du dsm exe
+	int j = 0;
+	for (j = 0; j < DSM_NODE_NUM; j++) {
+		close(liste_client[j].sock_twin);
+	}
+
+	close(4); //c'est la sock du dsm exe
 	/* terminer correctement le thread de communication */
 	/* pour le moment, on peut faire : */
 	pthread_cancel(comm_daemon);

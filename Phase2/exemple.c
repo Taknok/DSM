@@ -32,6 +32,6 @@ int main(int argc, char **argv)
    while(++toto);
    printf("fini ! %i\n", DSM_NODE_ID);
    fflush(stdout);
-//   dsm_finalize();
+   dsm_finalize();
    return 1;
 }

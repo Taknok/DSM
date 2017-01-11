@@ -17,23 +17,18 @@ int main(int argc, char **argv) {
 	/* necessaires pour la phase dsm_init */
 
 
-	/* On se replace dans le meme repertoire*/
-	chdir(argv[3]); //argv[3] correspond a cwd
-
-
-
 	struct sockaddr_in sock_host;
 	int sock;
-
 	char buffer[BUFFER_SIZE];
-	memset(buffer, 0, BUFFER_SIZE);
-
-	//get address info from the server
 	char* serv_ip = get_ip(argv[2]);
-	//printf("###%s\n", serv_ip);
-
-	//get port
 	int serv_port = atoi(argv[1]);
+	char hostname[100];
+	struct sockaddr_in serv_addr;
+	int lst_sock;
+	int port;
+
+	/* On se replace dans le meme repertoire*/
+	chdir(argv[3]); //argv[3] correspond a cwd
 
 	//get the socket
 	sock = do_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -41,19 +36,20 @@ int main(int argc, char **argv) {
 	//connect to remote socket
 	sock_host = do_connect(sock, sock_host, serv_ip, serv_port);
 
-	char hostname[100];
+	//recupere hostname
 	gethostname(hostname, 99);
 
 	/* Creation de la socket d'ecoute pour les */
 	/* connexions avec les autres processus dsm */
-	struct sockaddr_in serv_addr;
-	int lst_sock = do_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+
+	lst_sock = do_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	init_serv_addr(0, &serv_addr);
 	do_bind(lst_sock, serv_addr);
 	do_listen(lst_sock);
 
-	int port = get_port(lst_sock);
+	port = get_port(lst_sock);
 
+	memset(buffer, 0, BUFFER_SIZE);
 	/* Envoi du nom de machine au lanceur */
 	sprintf(buffer, "%s<name>%s</name>", buffer, hostname);
 

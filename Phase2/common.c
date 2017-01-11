@@ -157,8 +157,9 @@ int do_read(char * buffer, int lst_sock) {
 	return length_r_buff;
 }
 
-struct sockaddr_in do_connect(int sock, struct sockaddr_in sock_host,
-		char* hostname, int port) {
+struct sockaddr_in do_connect(int sock, struct sockaddr_in sock_host, char* hostname, int port) {
+	int retour;
+
 	//reinitialise la memoire
 	memset(&sock_host, 0, sizeof(sock_host));
 
@@ -167,7 +168,7 @@ struct sockaddr_in do_connect(int sock, struct sockaddr_in sock_host,
 	sock_host.sin_port = htons(port);
 
 	//check de l'erreur
-	int retour;
+
 	do{
 		retour = connect(sock, (struct sockaddr *) &sock_host, sizeof(sock_host));
 	}while ((-1 == retour) && (errno == EINTR));
