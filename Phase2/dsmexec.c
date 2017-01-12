@@ -66,9 +66,9 @@ int main(int argc, char *argv[]) {
 		memset(&custom_sigchild, 0, sizeof(struct sigaction));
 		custom_sigchild.sa_handler = sigchld_handler;
 		sigaction(SIGCHLD, &custom_sigchild, NULL);
+
 		/* lecture du fichier de machines */
 		/* 1- on recupere le nombre de processus a lancer */
-
 		FP = fopen(argv[1], "r");
 		if (!FP) {
 			printf("Impossible d'ouvrir le fichier\n");
@@ -88,8 +88,7 @@ int main(int argc, char *argv[]) {
 		int i = 0;
 		int r;
 		size_t len = 0;
-		while ((r = getline(&(tab_dsm_proc[i].connect_info.name_machine), &len,
-				FP)) != -1) {
+		while ((r = getline(&(tab_dsm_proc[i].connect_info.name_machine), &len,	FP)) != -1) {
 
 			if (errno != 0) {
 				perror("Erreur lors de la lecture des noms de machines");
@@ -103,17 +102,13 @@ int main(int argc, char *argv[]) {
 			i++;
 		}
 
-		/* creation #include <poll.h>
-		 * de la socket d'ecoute */
+
+		/* CREATION DU SERVEUR */
 		struct sockaddr_in serv_addr;
 		int port;
 		char hostname[1024];
 
-		int pipe_out[DSM_NODE_NUM][2];
-		int pipe_err[DSM_NODE_NUM][2];
 
-		int pipe_father[DSM_NODE_NUM][2];
-		int pipe_child[DSM_NODE_NUM][2];
 
 		//initialisation de la socket d'écoute
 		int lst_sock = do_socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
@@ -127,6 +122,13 @@ int main(int argc, char *argv[]) {
 
 		gethostname(hostname, 1023);
 
+
+		/* pipe pour redirection */
+		int pipe_out[DSM_NODE_NUM][2];
+		int pipe_err[DSM_NODE_NUM][2];
+		//		int pipe_father[DSM_NODE_NUM][2];
+		//		int pipe_child[DSM_NODE_NUM][2];
+
 		/* creation des fils */
 		num_procs = DSM_NODE_NUM;
 
@@ -136,8 +138,8 @@ int main(int argc, char *argv[]) {
 			pipe(pipe_out[i]);
 			pipe(pipe_err[i]);
 
-			pipe(pipe_father[i]);
-			pipe(pipe_child[i]);
+//			pipe(pipe_father[i]);
+//			pipe(pipe_child[i]);
 			pid = fork();
 			if (pid == -1)
 				ERROR_EXIT("fork");
@@ -151,10 +153,10 @@ int main(int argc, char *argv[]) {
 					close(pipe_out[k][1]);
 					close(pipe_err[k][0]);
 					close(pipe_err[k][1]);
-					close(pipe_father[k][0]);
-					close(pipe_father[k][1]);
-					close(pipe_child[k][0]);
-					close(pipe_child[k][1]);
+//					close(pipe_father[k][0]);
+//					close(pipe_father[k][1]);
+//					close(pipe_child[k][0]);
+//					close(pipe_child[k][1]);
 
 				}
 
@@ -185,7 +187,6 @@ int main(int argc, char *argv[]) {
 					perror("getcwd() error");
 				}
 
-				//PB POSSIBLE AVEC LE REALLOC DE POINTEUR CONSTANT
 
 				newargv = malloc((taille + 1) * sizeof(char*));
 				for (a = 0; a < taille + 1; a++) {

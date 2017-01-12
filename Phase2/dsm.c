@@ -199,7 +199,7 @@ static void *dsm_comm_daemon(void *arg) {
 			if (length_r_buff < 0) {
 				printf("erreur rien n'a été recu deamon\n");
 				perror("error read thread ");
-			} else if (length_r_buff == 0){ // fermuture de la sock
+			} else if (length_r_buff == 0){ // fermeture de la sock
 				close(fds[z].fd);
 				fds[z].fd = -1;
 			}
@@ -262,8 +262,7 @@ static void dsm_handler(int numpage) {
 	int sock = liste_client[owner].sock_twin;
 	int retour;
 	char * buffer_send = malloc(BUFFER_SIZE * sizeof(char));
-	snprintf(buffer_send, BUFFER_SIZE, "<id>%i</id><numpage>%i</numpage>",
-			DSM_NODE_ID, numpage);
+	snprintf(buffer_send, BUFFER_SIZE, "<id>%i</id><numpage>%i</numpage>", DSM_NODE_ID, numpage);
 
 	do {
 		retour = send(sock, buffer_send, BUFFER_SIZE, 0); //demande de la page
@@ -347,7 +346,7 @@ char *dsm_init(int argc, char **argv) {
 	ioctl(sock_recv, FIONREAD, &count);
 
 	// récup de toute la chaine de caractère
-	buffer_sock = (char *) malloc(count * sizeof(char)); //3 car 3 valeurs dans un proc
+	buffer_sock = (char *) malloc(count * sizeof(char));
 	retour_client = do_read(buffer_sock, sock_recv);
 
 	/* reception du nombre de processus dsm envoye */
