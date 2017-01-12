@@ -7,8 +7,8 @@
 int DSM_NODE_NUM = 0;
 int ARG_MAX_SIZE = 100;
 
-char * PATH_WRAP = "~/C/DSM/Phase2/bin/dsmwrap";
-//char * PATH_WRAP = "~/personnel/C/Semestre_7/DSM/Phase2/bin/dsmwrap";
+//char * PATH_WRAP = "~/C/DSM/Phase2/bin/dsmwrap";
+char * PATH_WRAP = "~/personnel/C/Semestre_7/DSM/Phase2/bin/dsmwrap";
 
 /* un tableau gerant les infos d'identification */
 /* des processus dsm */
@@ -342,7 +342,7 @@ int main(int argc, char *argv[]) {
 			num_fds++;
 
 			fds[2 * j + 1].fd = pipe_err[j][0];
-			fds[2 * j + 1].events = POLLIN;
+			fds[2 * j + 1].events = POLLIN | POLLHUP;
 			num_fds++;
 		}
 
@@ -365,6 +365,12 @@ int main(int argc, char *argv[]) {
 				if (fds[z].revents == 0) { //si ya aucun evenement on passe au suivant
 					continue;
 				}
+
+				if (fds[z].revents ==  POLLHUP){
+					close(fds[z].fd);
+					fds[z].fd = -1;
+				}
+
 
 				//affichage effectif
 				do {

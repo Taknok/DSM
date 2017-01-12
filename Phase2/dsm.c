@@ -163,7 +163,7 @@ static void *dsm_comm_daemon(void *arg) {
 		fds[j].fd = liste_client[j].sock_twin;
 //		printf("ssssssssssoccccccccccccckkkkkkk id %i  %i\n", DSM_NODE_ID,fds[j].fd);
 //		fflush(stdout);
-		fds[j].events = POLLIN;
+		fds[j].events = POLLIN | POLLHUP;
 		num_fds++;
 	}
 
@@ -183,6 +183,10 @@ static void *dsm_comm_daemon(void *arg) {
 				continue;
 			}
 
+//			if (fds[z].revents ==  POLL_HUP){ / commenté car on fait aussi avec recv
+//				close(fds[z].fd);
+//			}
+
 			buffer_sock = (char *) malloc(PAGE_SIZE * sizeof(char));
 
 			sleep(0.1);
@@ -195,6 +199,9 @@ static void *dsm_comm_daemon(void *arg) {
 			if (length_r_buff < 0) {
 				printf("erreur rien n'a été recu deamon\n");
 				perror("error read thread ");
+			} else if (length_r_buff == 0){ // fermuture de la sock
+				close(fds[z].fd);
+				fds[z].fd = -1;
 			}
 
 			printf("Thread %i recv on sock %i : '%s' - %i\n", DSM_NODE_ID, fds[z].fd, buffer_sock, length_r_buff);
