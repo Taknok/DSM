@@ -1,4 +1,4 @@
-# DSM
-Creation of an transparent program allowing to execute others program on multiple servers with shared memories
+# Distributed Shared Memory
+Share virtual memory between multiple process on differents computers
 
 `bin/dsmexec machine_file.txt bin/exemple` 
